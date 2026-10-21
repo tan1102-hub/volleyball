@@ -1,0 +1,669 @@
+<title>バレー ベンチ記録</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: one-thumb scoresheet. Score card on top, jersey-number grid, then an action x result matrix; tabs fixed at the bottom. */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --ink:#2A2A31; --muted:#6C6C78; --line:#ECE8EC;
+  --accent:#D63B82; --accent-ink:#FFFFFF; --accent-soft:#FFE4F0;
+  --good-bg:#D8F5E6; --good:#0F6B45; --bad-bg:#FFE2DA; --bad:#BC2A18; --neu-bg:#F4F2F5;
+  --shadow:0 6px 18px rgba(40,30,50,.08);
+  --font-ui:"Zen Maru Gothic","Noto Sans JP",system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+  --font-num:"Fredoka","Zen Maru Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#17161B; --surface:#211F27; --ink:#F3F1F5; --muted:#B0ABB8; --line:#35323C;
+  --accent:#FF8DBD; --accent-ink:#2A0A18; --accent-soft:#5A2442;
+  --good-bg:#17402F; --good:#8FE8B8; --bad-bg:#4C241E; --bad:#FF9F8E; --neu-bg:#2B2931; --shadow:0 6px 18px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17161B; --surface:#211F27; --ink:#F3F1F5; --muted:#B0ABB8; --line:#35323C;
+  --accent:#FF8DBD; --accent-ink:#2A0A18; --accent-soft:#5A2442;
+  --good-bg:#17402F; --good:#8FE8B8; --bad-bg:#4C241E; --bad:#FF9F8E; --neu-bg:#2B2931; --shadow:0 6px 18px rgba(0,0,0,.3); color-scheme:dark}
+
+
+:root[data-skin="violet"]{--accent:#7B5BE0;--accent-soft:#EDE6FF}
+:root[data-skin="mint"]{--accent:#0C8C75;--accent-soft:#D3F4EB}
+:root[data-skin="sky"]{--accent:#2A74D0;--accent-soft:#DCEBFF}
+@media (prefers-color-scheme:dark){
+  :root[data-skin="violet"]:not([data-theme="light"]){--accent:#B79CFF;--accent-soft:#3B2A66;--accent-ink:#1A1226}
+  :root[data-skin="mint"]:not([data-theme="light"]){--accent:#6EE0C6;--accent-soft:#17463C;--accent-ink:#082A22}
+  :root[data-skin="sky"]:not([data-theme="light"]){--accent:#8DBBFF;--accent-soft:#1D3558;--accent-ink:#0A1A33}}
+:root[data-theme="dark"][data-skin="violet"]{--accent:#B79CFF;--accent-soft:#3B2A66;--accent-ink:#1A1226}
+:root[data-theme="dark"][data-skin="mint"]{--accent:#6EE0C6;--accent-soft:#17463C;--accent-ink:#082A22}
+:root[data-theme="dark"][data-skin="sky"]{--accent:#8DBBFF;--accent-soft:#1D3558;--accent-ink:#0A1A33}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px 100px;-webkit-tap-highlight-color:transparent}
+#app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+button,input,select{font:inherit;color:inherit}
+button{min-height:44px;border-radius:14px;border:1px solid var(--line);background:var(--surface);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;padding:0 10px}
+button:active:not(:disabled){transform:scale(.97)}
+button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input,select{min-height:44px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 10px;min-width:0;width:100%}
+h2{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0}
+.brand{display:flex;align-items:center;gap:8px;padding:2px 4px;font-weight:700;font-size:18px;color:var(--accent);letter-spacing:.04em}
+.brand small{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.04em}
+.skins{display:flex;gap:8px;flex-wrap:wrap}
+.skins button{display:flex;align-items:center;gap:8px;border-radius:99px;min-height:44px}
+.skins button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
+.sw-dot{width:16px;height:16px;border-radius:50%;display:inline-block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow)}
+.row{display:flex;gap:8px;align-items:center}
+.sp{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:12px}
+
+/* score */
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.sync{min-height:28px;font-size:11px;border-radius:99px;padding:0 10px;color:var(--muted)}
+.sync.err{color:var(--bad);border-color:var(--bad)}
+.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+.board .lbl{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.board b{font:700 64px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.board .us b{color:var(--accent)}
+.stepper{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stepper .n{font:700 22px/1 var(--font-num);letter-spacing:.04em}
+.stepper button{min-height:36px;min-width:44px;padding:0}
+.setrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+.schip{font:600 13px/1 var(--font-num);padding:5px 9px;border-radius:99px;background:var(--neu-bg);color:var(--muted);font-variant-numeric:tabular-nums}
+.schip.on{background:var(--accent-soft);color:var(--accent)}
+.manual{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.manual button{font-size:13px}
+
+/* players */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.pbtn{border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;min-height:54px;padding:2px 4px;line-height:1.15}
+.pbtn .no{font:700 24px/1 var(--font-num)}
+.pbtn .nm{font-size:11px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pbtn.on .nm{color:var(--accent-ink)}
+.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}button:active:not(:disabled){transform:none}}
+
+/* matrix */
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.mhead .who{font-weight:700}
+.mrow{display:grid;grid-template-columns:4.6em 1fr;gap:8px;align-items:stretch;margin-bottom:8px}
+.mrow:last-child{margin-bottom:0}
+.alabel{font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;line-height:1.25}
+.rbs{display:grid;gap:6px;grid-template-columns:repeat(var(--cols),1fr)}
+.rb{font-size:12px;padding:0 1px;min-height:46px;line-height:1.2}
+.rb.g{background:var(--good-bg);color:var(--good);border-color:transparent;font-weight:700}
+.rb.b{background:var(--bad-bg);color:var(--bad);border-color:transparent;font-weight:700}
+.rb.n{background:var(--neu-bg);border-color:transparent}
+.nop .rb{opacity:.5}
+
+/* log */
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.log li{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .t{flex:1;min-width:0}
+.log button{min-height:36px;min-width:44px;padding:0}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:4px}
+.tag.g{background:var(--good-bg);color:var(--good)}
+.tag.b{background:var(--bad-bg);color:var(--bad)}
+
+/* tabs */
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#tabbar button{border:0;background:none;font-size:13px;font-weight:700;color:var(--muted);min-height:48px}
+#tabbar button{border-radius:18px}
+#tabbar button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);
+  padding:8px 14px;border-radius:99px;font-size:13px;font-weight:700;max-width:calc(100% - 32px);text-align:center;opacity:0;pointer-events:none;transition:opacity .15s}
+#toast.show{opacity:1}
+
+/* stats */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chips button{flex:none;min-height:38px;font-size:13px;border-radius:99px}
+.chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{padding:8px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:11px;color:var(--muted);font-weight:700;background:var(--surface)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+td.hi{font-weight:700;color:var(--accent)}
+tr.total td{font-weight:700;background:var(--neu-bg)}
+tr.total td:first-child{background:var(--neu-bg)}
+tbody tr:last-child td{border-bottom:0}
+.bars{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.bar{display:grid;grid-template-columns:minmax(0,9em) 1fr 3.6em;gap:8px;align-items:center;font-size:13px}
+.bar .tr{height:12px;background:var(--neu-bg);border-radius:6px;overflow:hidden}
+.bar .fl{height:100%;border-radius:6px}
+.bar.g .fl{background:var(--good)}
+.bar.b .fl{background:var(--bad)}
+.bar .v{text-align:right;font-variant-numeric:tabular-nums}
+.empty{text-align:center;color:var(--muted);padding:20px 8px}
+.hint{background:var(--accent-soft);border-color:transparent}
+.helpb{min-height:32px;font-size:12px;font-weight:700;border-radius:99px;padding:0 10px;color:var(--accent);border-color:var(--accent)}
+h2 .helpb{min-height:28px;min-width:28px;padding:0;margin-left:6px;vertical-align:middle}
+.row{flex-wrap:nowrap}
+.top{flex-wrap:wrap}
+.top .row{margin-left:auto}
+.helpb,.sync{white-space:nowrap}
+.help .steps{margin:8px 0 0;padding-left:1.4em}
+.help .legend{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12px;margin-bottom:10px}
+.hb{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px}
+.hb.g{background:var(--good-bg);color:var(--good)}
+.hb.b{background:var(--bad-bg);color:var(--bad)}
+.hb.n{background:var(--neu-bg)}
+.hrow{border-top:1px solid var(--line);padding:8px 0}
+.hact{font-weight:700;font-size:13px;margin-bottom:4px}
+.hrow dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0;align-items:center}
+.hrow dt{margin:0}.hrow dd{margin:0;font-size:12.5px;color:var(--muted)}
+
+/* match / roster */
+.mcard{display:flex;flex-direction:column;gap:8px}
+.mcard.cur{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.two{display:grid;grid-template-columns:9.5em 1fr;gap:8px}
+.prow{display:grid;grid-template-columns:4em 1fr auto;gap:8px;margin-bottom:8px}
+.prow input:first-child{text-align:center;font-weight:700}
+.btn-main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn-bad{color:var(--bad)}
+label.sw{display:flex;gap:10px;align-items:flex-start}
+label.sw input{width:22px;min-height:22px;margin-top:2px;flex:none}
+details summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:700;font-size:13px;color:var(--muted)}
+details p{margin:4px 0}
+</style>
+
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<nav id="tabbar" aria-label="メニュー">
+  <button data-do="tab" data-v="rec">記録</button>
+  <button data-do="tab" data-v="stat">集計</button>
+  <button data-do="tab" data-v="match">試合</button>
+  <button data-do="tab" data-v="team">選手</button>
+</nav>
+
+<script>
+// ==PURE-START==
+var ACTIONS=[
+  {k:'at',n:'アタック',res:[{k:'k',n:'決定',pt:1},{k:'c',n:'継続'},{k:'b',n:'被ブロック',h:'被<wbr>ブロック',pt:-1},{k:'e',n:'ミス',pt:-1}]},
+  {k:'sv',n:'サーブ',res:[{k:'a',n:'エース',pt:1},{k:'g',n:'効果的'},{k:'n',n:'普通'},{k:'e',n:'ミス',pt:-1}]},
+  {k:'rc',n:'サーブ<wbr>レシーブ',pl:'サーブレシーブ',res:[{k:'a',n:'A'},{k:'b',n:'B'},{k:'c',n:'C'},{k:'d',n:'D失点',pt:-1}]},
+  {k:'dg',n:'ディグ',res:[{k:'g',n:'成功'},{k:'p',n:'乱れ'},{k:'e',n:'失敗',pt:-1}]},
+  {k:'ts',n:'トス',res:[{k:'g',n:'良'},{k:'m',n:'トスミス'},{k:'x',n:'トスミス失点',pt:-1}]},
+  {k:'bl',n:'ブロック',res:[{k:'k',n:'得点',pt:1},{k:'t',n:'タッチ'},{k:'e',n:'ミス',pt:-1}]},
+  {k:'ot',n:'反則',res:[{k:'n',n:'ネット',pt:-1},{k:'d',n:'ドリブル等',pt:-1},{k:'o',n:'その他',pt:-1}]}
+];
+var ACT={};
+ACTIONS.forEach(function(a){a.pl=a.pl||a.n;ACT[a.k]=a;a.res.forEach(function(r){r.pt=r.pt||0;});});
+function ptOf(a,r){
+  if(a==='pt')return r==='u'?1:-1;
+  var x=ACT[a];if(!x)return 0;
+  for(var i=0;i<x.res.length;i++)if(x.res[i].k===r)return x.res[i].pt;
+  return 0;
+}
+function resName(a,r){
+  if(a==='pt')return r==='u'?'相手ミスで自チーム+1':'相手の得点+1';
+  var x=ACT[a];if(!x)return r;
+  for(var i=0;i<x.res.length;i++)if(x.res[i].k===r)return x.res[i].n;
+  return r;
+}
+function scoreOf(ev,set){
+  var us=0,op=0;
+  ev.forEach(function(e){if(e[0]!==set)return;var p=ptOf(e[2],e[3]);if(p>0)us++;else if(p<0)op++;});
+  return {us:us,op:op};
+}
+function setsOf(ev,cur){
+  var s={};s[cur]=1;ev.forEach(function(e){s[e[0]]=1;});
+  return Object.keys(s).map(Number).sort(function(a,b){return a-b;});
+}
+function tally(evs){
+  var by={};
+  evs.forEach(function(e){
+    var o=by[e[1]]||(by[e[1]]={});var k=e[2]+'.'+e[3];o[k]=(o[k]||0)+1;
+  });
+  return by;
+}
+function sumObj(list){
+  var t={};
+  list.forEach(function(o){for(var k in o)t[k]=(t[k]||0)+o[k];});
+  return t;
+}
+function ratio(n,d){return d>0?n/d:null;}
+function pstat(o){
+  function g(a,r){return o[a+'.'+r]||0;}
+  function tot(a){var n=0;for(var k in o)if(k.indexOf(a+'.')===0)n+=o[k];return n;}
+  var s={};
+  s.atN=tot('at');s.atK=g('at','k');s.atC=g('at','c');s.atB=g('at','b');s.atE=g('at','e');
+  s.atRate=ratio(s.atK,s.atN);s.atEff=ratio(s.atK-s.atB-s.atE,s.atN);
+  s.svN=tot('sv');s.svA=g('sv','a');s.svG=g('sv','g');s.svNo=g('sv','n');s.svE=g('sv','e');
+  s.svAceRate=ratio(s.svA,s.svN);s.svErrRate=ratio(s.svE,s.svN);
+  s.rcN=tot('rc');s.rcA1=g('rc','a');s.rcB1=g('rc','b');s.rcC1=g('rc','c');s.rcD1=g('rc','d');
+  s.rcARate=ratio(s.rcA1,s.rcN);s.rcABRate=ratio(s.rcA1+s.rcB1,s.rcN);
+  s.dgN=tot('dg');s.dgG=g('dg','g');s.dgP=g('dg','p');s.dgE=g('dg','e');s.dgRate=ratio(s.dgG,s.dgN);
+  s.tsN=tot('ts');s.tsG=g('ts','g');s.tsM=g('ts','m');s.tsX=g('ts','x');s.tsErr=ratio(s.tsM+s.tsX,s.tsN);
+  s.blK=g('bl','k');s.blT=g('bl','t');s.blE=g('bl','e');
+  s.otN=tot('ot');
+  return s;
+}
+function causes(evs){
+  var loss={},gain={};
+  evs.forEach(function(e){
+    var p=ptOf(e[2],e[3]);if(!p)return;
+    var key=e[2]+'.'+e[3];var t=p>0?gain:loss;t[key]=(t[key]||0)+1;
+  });
+  return {loss:loss,gain:gain};
+}
+function causeLabel(key){
+  var i=key.indexOf('.');var a=key.slice(0,i),r=key.slice(i+1);
+  if(a==='pt')return r==='u'?'相手のミス(手入力)':'相手の得点(手入力)';
+  var x=ACT[a];return (x?x.pl:a)+' '+resName(a,r);
+}
+// ==PURE-END==
+
+var LS_KEY='vbrec.v1';
+function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
+var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
+  ui:{skin:'sakura',tab:'rec',pid:null,keep:false,stab:'at',scope:'cur',confirm:null,hint:true}};
+var $=function(s){return document.querySelector(s);};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function mdStr(s){var p=String(s||'').split('-');return p.length===3?(+p[1])+'/'+(+p[2]):'';}
+function cur(){return S.matches.find(function(m){return m.id===S.curId;})||S.matches[0];}
+function pname(id){
+  var p=S.roster.find(function(x){return x.id===id;});
+  return p?(p.num+(p.name?' '+p.name:'')):'?';
+}
+function newMatch(date,opp){
+  return {id:'m'+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36),date:date||todayStr(),opp:opp||'',set:1,ev:[]};
+}
+function seedLocal(){
+  S.roster=[];S.nextPid=1;
+  for(var i=1;i<=12;i++)S.roster.push({id:S.nextPid++,num:String(i),name:'選手'+i,arch:false});
+  S.sample=true;
+  var m=newMatch();S.matches=[m];S.curId=m.id;
+}
+
+/* ---------- persistence ---------- */
+var col=null,dirty={},flushing=false,timer=null,sync='local';
+function lsSave(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify({roster:S.roster,nextPid:S.nextPid,matches:S.matches,curId:S.curId,sample:S.sample,keep:S.ui.keep,hint:S.ui.hint,skin:S.ui.skin}));}catch(e){}
+}
+function lsLoad(){try{var t=localStorage.getItem(LS_KEY);return t?JSON.parse(t):null;}catch(e){return null;}}
+function applyLocal(d){
+  S.roster=d.roster||[];S.nextPid=d.nextPid||1;S.matches=d.matches||[];S.curId=d.curId;S.sample=!!d.sample;
+  S.ui.keep=!!d.keep;S.ui.hint=d.hint!==false;S.ui.skin=['sakura','violet','mint','sky'].indexOf(d.skin)>=0?d.skin:'sakura';
+}
+function setSync(v){sync=v;var el=$('#syncchip');if(el)el.outerHTML=syncChip();}
+function syncChip(){
+  var t={local:'この端末に保存',saving:'保存中…',saved:'保存済み',error:'保存失敗・タップで再試行'}[sync];
+  return '<button id="syncchip" class="sync'+(sync==='error'?' err':'')+'" data-do="retry">'+t+'</button>';
+}
+function mark(key){
+  S.touched=true;lsSave();
+  if(!col)return;
+  dirty[key]=1;setSync('saving');
+  clearTimeout(timer);timer=setTimeout(flush,700);
+}
+async function flush(){
+  if(flushing){timer=setTimeout(flush,300);return;}
+  flushing=true;
+  try{
+    var keys=Object.keys(dirty);
+    for(var i=0;i<keys.length;i++){
+      var key=keys[i];
+      try{
+        if(key==='roster'){
+          await col.doc('roster').set({kind:'roster',json:JSON.stringify({roster:S.roster,nextPid:S.nextPid})});
+        }else{
+          var m=S.matches.find(function(x){return x.id===key;});
+          if(m)await col.doc(key).set({kind:'match',id:m.id,date:m.date,opp:m.opp,set:m.set,ev:JSON.stringify(m.ev)});
+          else await col.doc(key).delete();
+        }
+        delete dirty[key];
+      }catch(err){setSync('error');return;}
+    }
+    setSync('saved');
+  }finally{flushing=false;}
+}
+async function connectDb(){
+  try{
+    if(!(window.claude&&window.claude.use))return;
+    var res=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    var db=res[0],user=res[1];
+    if(!db||!user)return;
+    var uid=await user.id();
+    if(!uid)return;
+    var c=db.collection('data/users/'+uid);
+    var snap=await c.get();
+    if(snap.empty||S.touched){
+      col=c;
+      dirty.roster=1;S.matches.forEach(function(m){dirty[m.id]=1;});
+      setSync('saving');flush();
+      return;
+    }
+    var roster=null,ms=[];
+    snap.docs.forEach(function(d){
+      var x=d.data();if(!x)return;
+      if(x.kind==='roster'){try{roster=JSON.parse(x.json);}catch(e){}}
+      else if(x.kind==='match'){try{ms.push({id:x.id,date:x.date,opp:x.opp||'',set:x.set||1,ev:JSON.parse(x.ev||'[]')});}catch(e){}}
+    });
+    if(roster){S.roster=roster.roster||[];S.nextPid=roster.nextPid||1;S.sample=false;}
+    if(ms.length){
+      ms.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+      S.matches=ms;
+      if(!S.matches.some(function(m){return m.id===S.curId;}))S.curId=S.matches[S.matches.length-1].id;
+    }
+    col=c;lsSave();setSync('saved');render();
+  }catch(e){/* stay local */}
+}
+
+/* ---------- UI helpers ---------- */
+var toastT=null;
+function toast(msg){
+  var t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1400);
+}
+function buzz(){try{if(navigator.vibrate)navigator.vibrate(12);}catch(e){}}
+function activePlayers(){return S.roster.filter(function(p){return !p.arch;});}
+function evText(e){
+  if(e[2]==='pt')return resName('pt',e[3]);
+  return '#'+pname(e[1])+'　'+ACT[e[2]].pl+' '+resName(e[2],e[3]);
+}
+function ptTag(e){
+  var p=ptOf(e[2],e[3]);
+  return p>0?'<span class="tag g">得点</span>':p<0?'<span class="tag b">失点</span>':'';
+}
+
+/* ---------- help ---------- */
+var HELP={
+  at:{k:'スパイクで得点',c:'打ったが拾われ、ラリーが続いた',b:'ブロックされて失点',e:'アウト・ネットなどで失点'},
+  sv:{a:'サーブで得点',g:'相手の攻撃を制限できた(チームの基準で判断)',n:'通常のサーブ',e:'サーブミスで失点'},
+  rc:{a:'セッターが定位置から攻撃を組み立てられる返球',b:'やや乱れたが、攻撃を選べる',c:'二段トスなど、返すだけ',d:'ミス、またはそのまま失点'},
+  dg:{g:'きれいにつないだ',p:'上げたが乱れた',e:'落とした・失点'},
+  ts:{g:'打ちやすいトス',m:'打てなかったが、ラリーは続いた',x:'トスミスで失点'},
+  bl:{k:'ブロックで得点',t:'触ってつないだ',e:'ブロック側のミスで失点'},
+  ot:{n:'ネットタッチなど',d:'ドリブル・ホールディングなど',o:'その他の反則'}
+};
+function helpHtml(){
+  var rows=ACTIONS.map(function(a){
+    return '<div class="hrow"><div class="hact">'+a.pl+'</div><dl>'+a.res.map(function(r){
+      var c=r.pt>0?'g':r.pt<0?'b':'n';
+      return '<dt><span class="hb '+c+'">'+esc(r.n)+'</span></dt><dd>'+esc((HELP[a.k]||{})[r.k]||'')+'</dd>';
+    }).join('')+'</dl></div>';
+  }).join('');
+  return '<section class="card help"><div class="mhead"><h2>使い方</h2><button data-do="help">閉じる</button></div>'+
+    '<ol class="steps"><li>選手の背番号をタップします。</li><li>その選手のプレーの結果をタップすると、1件記録されます。</li><li>間違えたら「1つ取り消す」、または直近の記録の ✕ で消せます。</li></ol>'+
+    '<p class="muted" style="margin:8px 0">結果ボタンは、得点したプレーだけでなく、1回ごとのプレー全部を記録するためのものです。集計したいプレーを押してください。入力しなかったプレーは集計に出ません。</p>'+
+    '<div class="legend"><span class="hb g">緑</span>自チームの得点 <span class="hb b">赤</span>自チームの失点 <span class="hb n">灰</span>ラリーが続く(得失点なし)</div>'+
+    rows+
+    '<p class="muted" style="margin:8px 0 0">画面上部の「相手ミスで +1」「相手の得点 +1」は、自チームの選手のプレーに結びつかない得失点に使います。A〜Dなどの基準は目安です。チームで決めて統一してください。</p></section>';
+}
+
+/* ---------- views ---------- */
+function vRec(){
+  var m=cur(),sc=scoreOf(m.ev,m.set),sets=setsOf(m.ev,m.set);
+  var chips=sets.map(function(n){var q=scoreOf(m.ev,n);return '<span class="schip'+(n===m.set?' on':'')+'">S'+n+'　'+q.us+'-'+q.op+'</span>';}).join('');
+  var ps=activePlayers();
+  var sel=S.roster.find(function(p){return p.id===S.ui.pid;});
+  var grid=ps.length?ps.map(function(p){
+    return '<button class="pbtn'+(p.id===S.ui.pid?' on':'')+'" data-do="pick" data-p="'+p.id+'" aria-pressed="'+(p.id===S.ui.pid)+'"><span class="no">'+esc(p.num)+'</span><span class="nm">'+esc(p.name||'　')+'</span></button>';
+  }).join(''):'<div class="empty">選手タブでメンバーを登録してください</div>';
+  var matrix=ACTIONS.map(function(a){
+    return '<div class="mrow"><div class="alabel">'+a.n+'</div><div class="rbs" style="--cols:'+a.res.length+'">'+
+      a.res.map(function(r){
+        var c=r.pt>0?'g':r.pt<0?'b':'n';
+        return '<button class="rb '+c+'" data-do="rec" data-a="'+a.k+'" data-r="'+r.k+'">'+(r.h||r.n)+'</button>';
+      }).join('')+'</div></div>';
+  }).join('');
+  var n=m.ev.length,logs='';
+  for(var i=n-1;i>=Math.max(0,n-6);i--){
+    var e=m.ev[i];
+    logs+='<li><span class="t">'+esc(evText(e))+ptTag(e)+'</span><button data-do="delev" data-i="'+i+'" aria-label="この記録を消す">✕</button></li>';
+  }
+  var help=S.ui.help?helpHtml():'';
+  var hint=(S.sample&&S.ui.hint)?'<div class="card hint"><div class="row"><div class="sp">いまの選手はサンプルです。「選手」タブで背番号と名前を直してください。</div><button data-do="hidehint">閉じる</button></div></div>':'';
+  return '<header class="brand"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><path d="M16 2c0 7 3 11 10 14M16 2c-3 6-9 9-14 9M5 25c5-1 9-5 11-9s0-9 0-14" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg><span>ベンチノート <small>みんなで つくる記録</small></span></header>'+help+hint+
+  '<section class="card"><div class="top"><span class="muted">'+esc(mdStr(m.date))+'　対 '+esc(m.opp||'(相手名は「試合」タブ)')+'</span><span class="row"><button class="helpb" data-do="help" aria-expanded="'+(!!S.ui.help)+'">？ ヘルプ</button>'+syncChip()+'</span></div>'+
+  '<div class="board"><div class="us"><span class="lbl">自チーム</span><b>'+sc.us+'</b></div>'+
+  '<div class="stepper"><button data-do="set" data-d="1" aria-label="次のセットへ"'+(m.set>=5?' disabled':'')+'>▲</button><span class="n">SET '+m.set+'</span><button data-do="set" data-d="-1" aria-label="前のセットへ"'+(m.set<=1?' disabled':'')+'>▼</button></div>'+
+  '<div><span class="lbl">相手</span><b>'+sc.op+'</b></div></div>'+
+  '<div class="setrow">'+chips+'</div>'+
+  '<div class="manual"><button data-do="rec" data-a="pt" data-r="u">相手ミスで +1</button><button data-do="rec" data-a="pt" data-r="o">相手の得点 +1</button></div></section>'+
+  '<section class="card"><div class="mhead"><h2>1. 選手を選ぶ</h2><span class="muted">'+(sel?'選択中 #'+esc(sel.num):'未選択')+'</span></div><div class="pgrid" id="pgrid">'+grid+'</div></section>'+
+  '<section class="card'+(sel?'':' nop')+'" id="matrix"><div class="mhead"><h2>2. 結果を押す <button class="helpb" data-do="help" aria-label="ヘルプを開く">？</button></h2><span class="who">'+(sel?esc('#'+sel.num+(sel.name?' '+sel.name:'')):'')+'</span></div>'+matrix+'</section>'+
+  '<section class="card"><div class="mhead"><h2>直近の記録</h2><button data-do="undo"'+(n?'':' disabled')+'>1つ取り消す</button></div>'+
+  (n?'<ul class="log">'+logs+'</ul>':'<div class="muted">まだ記録がありません。</div>')+
+  '<details style="margin-top:6px"><summary>Aパス・Dなどの目安</summary><p class="muted">A: セッターが定位置から攻撃を組み立てられる返球 / B: やや乱れたが攻撃を選べる / C: 二段トスなど返すだけ / D: ミスまたはそのまま失点。基準はチームで決めて統一してください。</p><p class="muted">サーブの「効果的」は相手の攻撃を制限できた場合、トスの「トスミス」は打てなかったがラリーが続いた場合です。</p></details></section>';
+}
+
+function scopeMatches(){
+  var sc=S.ui.scope;
+  if(sc==='all')return S.matches;
+  if(sc==='cur')return [cur()];
+  var m=S.matches.find(function(x){return x.id===sc;});
+  return [m||cur()];
+}
+var TABS={
+  at:{n:'アタック',cols:[['打数','atN'],['決定','atK'],['継続','atC'],['被ブロック','atB'],['ミス','atE'],['決定率','atRate','p',1],['効果率','atEff','p',1]],
+    help:'決定率 = 決定 ÷ 打数 / 効果率 = (決定 − 被ブロック − ミス) ÷ 打数'},
+  sv:{n:'サーブ',cols:[['本数','svN'],['エース','svA'],['効果的','svG'],['普通','svNo'],['ミス','svE'],['エース率','svAceRate','p',1],['ミス率','svErrRate','p']],
+    help:'エース率 = エース ÷ 本数 / ミス率 = ミス ÷ 本数'},
+  rc:{n:'レシーブ',cols:[['本数','rcN'],['A','rcA1'],['B','rcB1'],['C','rcC1'],['D失点','rcD1'],['A率','rcARate','p',1],['A+B率','rcABRate','p']],
+    help:'A率 = A ÷ 本数 / A+B率 = (A + B) ÷ 本数(サーブレシーブ)'},
+  dg:{n:'ディグ',cols:[['本数','dgN'],['成功','dgG'],['乱れ','dgP'],['失敗','dgE'],['成功率','dgRate','p',1]],
+    help:'成功率 = 成功 ÷ 本数'},
+  ts:{n:'トス',cols:[['本数','tsN'],['良','tsG'],['トスミス','tsM'],['ミス失点','tsX'],['ミス率','tsErr','p',1]],
+    help:'ミス率 = (トスミス + トスミス失点) ÷ 本数'},
+  bl:{n:'ブロック他',cols:[['ブロック得点','blK'],['タッチ','blT'],['ブロックミス','blE'],['反則','otN']],help:''}
+};
+function fmtCell(v,type){
+  if(type==='p')return v==null?'-':(v*100).toFixed(1)+'%';
+  return v;
+}
+function statRows(evs){
+  var by=tally(evs),rows=[];
+  S.roster.forEach(function(p){
+    var o=by[p.id];if(!o)return;
+    rows.push({label:p.num+(p.name?' '+p.name:''),s:pstat(o),o:o});
+  });
+  var all=[];rows.forEach(function(r){all.push(r.o);});
+  var total=pstat(sumObj(all));
+  return {rows:rows,total:total};
+}
+function vStat(){
+  var ms=scopeMatches(),evs=[];
+  ms.forEach(function(m){evs=evs.concat(m.ev);});
+  var opts=S.matches.map(function(m){
+    return '<option value="'+m.id+'"'+(S.ui.scope===m.id||(S.ui.scope==='cur'&&m.id===S.curId)?' selected':'')+'>'+esc(mdStr(m.date)+' 対 '+(m.opp||'相手未設定'))+'</option>';
+  }).join('')+'<option value="all"'+(S.ui.scope==='all'?' selected':'')+'>全試合の通算</option>';
+  var head='<section class="card"><label class="muted" for="scope">集計する試合</label><select id="scope">'+opts+'</select></section>';
+  if(!evs.length){
+    return head+'<div class="card empty">この範囲の記録はまだありません。<br>「記録」タブで選手と結果を押すと、ここに選手ごとの集計が出ます。</div>';
+  }
+  var tabs='<div class="chips" role="group" aria-label="集計の種類">'+
+    Object.keys(TABS).map(function(k){return '<button data-do="stab" data-k="'+k+'" aria-pressed="'+(S.ui.stab===k)+'">'+TABS[k].n+'</button>';}).join('')+
+    '<button data-do="stab" data-k="pt" aria-pressed="'+(S.ui.stab==='pt')+'">得点・失点の内訳</button></div>';
+  var body='';
+  if(S.ui.stab==='pt'){
+    var c=causes(evs);
+    var mk=function(obj,cls){
+      var keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];});
+      var tot=keys.reduce(function(s,k){return s+obj[k];},0);
+      if(!tot)return '<div class="muted">記録なし</div>';
+      return '<div class="bars">'+keys.map(function(k){
+        var pc=obj[k]/tot*100;
+        return '<div class="bar '+cls+'"><span>'+esc(causeLabel(k))+'</span><span class="tr"><span class="fl" style="display:block;width:'+pc.toFixed(1)+'%"></span></span><span class="v">'+obj[k]+'本 '+pc.toFixed(0)+'%</span></div>';
+      }).join('')+'</div>';
+    };
+    var lt=0,own=0,gt=0;
+    Object.keys(c.loss).forEach(function(k){lt+=c.loss[k];if(k.indexOf('pt.')!==0)own+=c.loss[k];});
+    Object.keys(c.gain).forEach(function(k){gt+=c.gain[k];});
+    body='<section class="card"><div class="mhead"><h2>失点の内訳</h2><span class="muted">計 '+lt+'点(自チームのミス '+own+'点)</span></div>'+mk(c.loss,'b')+'</section>'+
+      '<section class="card"><div class="mhead"><h2>得点の内訳</h2><span class="muted">計 '+gt+'点</span></div>'+mk(c.gain,'g')+'</section>'+
+      '<div class="muted">「相手の得点」「相手のミス」は記録画面のボタンで手入力した分です。選手の記録から数えた得点・失点とは別に集計しています。</div>';
+  }else{
+    var T=TABS[S.ui.stab],R=statRows(evs);
+    var th='<tr><th>選手</th>'+T.cols.map(function(c){return '<th>'+c[0]+'</th>';}).join('')+'</tr>';
+    var tr=R.rows.filter(function(r){return T.cols.some(function(c){return c[2]!=='p'&&r.s[c[1]]>0;});}).map(function(r){
+      return '<tr><td>'+esc(r.label)+'</td>'+T.cols.map(function(c){return '<td'+(c[3]?' class="hi"':'')+'>'+fmtCell(r.s[c[1]],c[2])+'</td>';}).join('')+'</tr>';
+    }).join('');
+    var tt='<tr class="total"><td>チーム計</td>'+T.cols.map(function(c){return '<td>'+fmtCell(R.total[c[1]],c[2])+'</td>';}).join('')+'</tr>';
+    body='<div class="tw"><table><thead>'+th+'</thead><tbody>'+tr+tt+'</tbody></table></div>'+(T.help?'<div class="muted">'+T.help+'</div>':'');
+  }
+  var exp='<section class="card"><div class="mhead"><h2>Excel用に書き出す</h2></div><div class="row" style="flex-wrap:wrap"><button class="sp" data-do="csvp">選手別集計 CSV</button><button class="sp" data-do="csve">全プレー記録 CSV</button><button class="sp" data-do="copyp">集計をコピー</button></div></section>';
+  return head+tabs+body+exp;
+}
+
+function matchSummary(m){
+  var sets=setsOf(m.ev,m.set).filter(function(n){return n<=m.set||m.ev.some(function(e){return e[0]===n;});});
+  if(!m.ev.length)return '記録なし';
+  return sets.map(function(n){var q=scoreOf(m.ev,n);return 'S'+n+' '+q.us+'-'+q.op;}).join(' / ');
+}
+function vMatch(){
+  var list=S.matches.slice().reverse().map(function(m){
+    var isCur=m.id===S.curId,cf=S.ui.confirm===m.id;
+    return '<div class="card mcard'+(isCur?' cur':'')+'"><div class="two"><input type="date" id="md-'+m.id+'" data-f="mdate" data-id="'+m.id+'" value="'+esc(m.date)+'" aria-label="日付"><input type="text" id="mo-'+m.id+'" data-f="mopp" data-id="'+m.id+'" value="'+esc(m.opp)+'" placeholder="相手チーム名" aria-label="相手チーム名"></div>'+
+      '<div class="muted">'+esc(matchSummary(m))+'　('+m.ev.length+'件)</div>'+
+      '<div class="row"><button class="sp'+(isCur?'':' btn-main')+'" data-do="selmatch" data-id="'+m.id+'"'+(isCur?' disabled':'')+'>'+(isCur?'記録中の試合':'この試合を記録する')+'</button>'+
+      (S.matches.length>1?'<button class="btn-bad" data-do="delmatch" data-id="'+m.id+'">'+(cf?'本当に削除':'削除')+'</button>':'')+'</div></div>';
+  }).join('');
+  return '<section class="card"><h2>新しい試合</h2><div class="two" style="margin-top:8px"><input type="date" id="nm-date" value="'+todayStr()+'" aria-label="日付"><input type="text" id="nm-opp" placeholder="相手チーム名" aria-label="相手チーム名"></div>'+
+    '<button class="btn-main" data-do="newmatch" style="width:100%;margin-top:8px">試合を追加して記録を始める</button></section>'+list;
+}
+function vTeam(){
+  var rows=activePlayers().map(function(p){
+    return '<div class="prow"><input type="text" id="pn-'+p.id+'" data-f="num" data-id="'+p.id+'" value="'+esc(p.num)+'" maxlength="3" aria-label="背番号"><input type="text" id="pm-'+p.id+'" data-f="name" data-id="'+p.id+'" value="'+esc(p.name)+'" placeholder="名前" aria-label="名前"><button class="btn-bad" data-do="delp" data-id="'+p.id+'">外す</button></div>';
+  }).join('');
+  return '<section class="card"><div class="mhead"><h2>メンバー</h2><span class="muted">'+activePlayers().length+'人</span></div>'+rows+
+    '<button data-do="addp" style="width:100%">選手を追加</button>'+
+    '<p class="muted">外した選手の過去の記録は集計に残ります。背番号は文字でも入力できます(例: L)。</p></section>'+
+    '<section class="card"><label class="sw"><input type="checkbox" id="keep" data-f="keep"'+(S.ui.keep?' checked':'')+'><span><b>記録後も選手を選んだままにする</b><br><span class="muted">同じ選手が続けて触るトスやレシーブを入力するときに便利です。</span></span></label></section>'+
+    '<section class="card"><h2>きせかえ</h2><div class="skins" style="margin-top:8px">'+[['sakura','さくら','#D63B82'],['violet','むらさき','#7B5BE0'],['mint','ミント','#0C8C75'],['sky','そら','#2A74D0']].map(function(k){return '<button data-do="skin" data-k="'+k[0]+'" aria-pressed="'+(S.ui.skin===k[0])+'"><span class="sw-dot" style="background:'+k[2]+'"></span>'+k[1]+'</button>';}).join('')+'</div></section>'+
+    '<section class="card"><h2>保存について</h2><p class="muted" style="margin:6px 0 0">'+(col?'記録はアカウントに保存され、別の端末で開いても引き継がれます。他の端末で入力した直後は、ページを開き直すと反映されます。':'いまはこの端末のブラウザにだけ保存しています。サインインして開くとアカウントに保存されます。')+'集計タブからCSVも書き出せます。</p></section>';
+}
+function render(){
+  var v={rec:vRec,stat:vStat,match:vMatch,team:vTeam}[S.ui.tab]||vRec;
+  var y=window.scrollY;
+  $('#app').innerHTML=v();
+  Array.prototype.forEach.call(document.querySelectorAll('#tabbar button'),function(b){
+    if(b.getAttribute('data-v')===S.ui.tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  });
+  window.scrollTo(0,y);
+}
+
+/* ---------- actions ---------- */
+function record(a,r){
+  var m=cur();
+  if(a!=='pt'&&!S.ui.pid){
+    toast('先に選手を選んでください');
+    var g=$('#pgrid');if(g){g.classList.remove('shake');void g.offsetWidth;g.classList.add('shake');}
+    return;
+  }
+  var pid=a==='pt'?0:S.ui.pid;
+  var e=[m.set,pid,a,r,Date.now()];
+  m.ev.push(e);mark(m.id);buzz();
+  toast('✓ '+evText(e));
+  if(!S.ui.keep)S.ui.pid=null;
+  render();
+}
+function csvEsc(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function statCsv(){
+  var evs=[];scopeMatches().forEach(function(m){evs=evs.concat(m.ev);});
+  var R=statRows(evs),head=['背番号','名前'],keys=[];
+  Object.keys(TABS).forEach(function(k){TABS[k].cols.forEach(function(c){head.push(TABS[k].n+'_'+c[0]+(c[2]==='p'?'(%)':''));keys.push(c);});});
+  var line=function(a){return a.map(csvEsc).join(',');};
+  var val=function(s,c){var v=s[c[1]];return c[2]==='p'?(v==null?'':(v*100).toFixed(1)):v;};
+  var out=[line(head)];
+  S.roster.forEach(function(p){
+    var o=tally(evs)[p.id];if(!o)return;
+    var s=pstat(o);out.push(line([p.num,p.name].concat(keys.map(function(c){return val(s,c);}))));
+  });
+  out.push(line(['','チーム計'].concat(keys.map(function(c){return val(R.total,c);}))));
+  return '﻿'+out.join('\r\n')+'\r\n';
+}
+function eventCsv(){
+  var out=['試合日,相手,セット,背番号,名前,プレー,結果,得失点,入力時刻'];
+  scopeMatches().forEach(function(m){
+    m.ev.forEach(function(e){
+      var p=S.roster.find(function(x){return x.id===e[1];});
+      var pt=ptOf(e[2],e[3]);
+      var d=new Date(e[4]);
+      out.push([m.date,m.opp,e[0],p?p.num:'',p?p.name:'',e[2]==='pt'?'手入力':ACT[e[2]].pl,resName(e[2],e[3]),pt>0?'得点':pt<0?'失点':'',isNaN(d)?'':d.toLocaleTimeString('ja-JP')].map(csvEsc).join(','));
+    });
+  });
+  return '﻿'+out.join('\r\n')+'\r\n';
+}
+async function saveCsv(name,text){
+  try{
+    var dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+    if(!dl){toast('この画面では保存できません。「集計をコピー」を使ってください');return;}
+    await dl.save({filename:name,data:text});
+    toast('保存しました');
+  }catch(e){
+    if(e&&e.code==='declined')return;
+    toast('保存できませんでした。「集計をコピー」を試してください');
+  }
+}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-do]');if(!b)return;
+  var d=b.getAttribute('data-do'),m=cur();
+  switch(d){
+    case 'tab':S.ui.tab=b.getAttribute('data-v');S.ui.confirm=null;render();window.scrollTo(0,0);break;
+    case 'pick':{var id=+b.getAttribute('data-p');S.ui.pid=S.ui.pid===id?null:id;render();break;}
+    case 'rec':record(b.getAttribute('data-a'),b.getAttribute('data-r'));break;
+    case 'set':{var n=m.set+(+b.getAttribute('data-d'));if(n>=1&&n<=5){m.set=n;mark(m.id);render();}break;}
+    case 'undo':if(m.ev.length){var e=m.ev.pop();mark(m.id);toast('取り消し: '+evText(e));render();}break;
+    case 'delev':{var i=+b.getAttribute('data-i');if(m.ev[i]){m.ev.splice(i,1);mark(m.id);render();}break;}
+    case 'help':S.ui.help=!S.ui.help;render();if(S.ui.help)window.scrollTo(0,0);break;
+    case 'skin':S.ui.skin=b.getAttribute('data-k');applySkin(S.ui.skin);lsSave();render();break;
+    case 'hidehint':S.ui.hint=false;lsSave();render();break;
+    case 'retry':if(col){dirty[m.id]=1;dirty.roster=1;flush();}break;
+    case 'stab':S.ui.stab=b.getAttribute('data-k');render();break;
+    case 'newmatch':{
+      var nm=newMatch($('#nm-date').value||todayStr(),$('#nm-opp').value.trim());
+      S.matches.push(nm);S.curId=nm.id;S.ui.tab='rec';S.ui.pid=null;mark(nm.id);render();window.scrollTo(0,0);toast('新しい試合を始めました');break;}
+    case 'selmatch':S.curId=b.getAttribute('data-id');S.ui.tab='rec';S.ui.pid=null;S.ui.scope='cur';lsSave();render();window.scrollTo(0,0);break;
+    case 'delmatch':{
+      var id2=b.getAttribute('data-id');
+      if(S.ui.confirm!==id2){S.ui.confirm=id2;render();break;}
+      S.matches=S.matches.filter(function(x){return x.id!==id2;});
+      if(S.curId===id2)S.curId=S.matches[S.matches.length-1].id;
+      S.ui.confirm=null;mark(id2);if(col){dirty.roster=1;}render();toast('試合を削除しました');break;}
+    case 'addp':{
+      var nums=activePlayers().map(function(p){return parseInt(p.num,10);}).filter(function(x){return !isNaN(x);});
+      var nx=nums.length?Math.max.apply(null,nums)+1:1;
+      S.roster.push({id:S.nextPid++,num:String(nx),name:'',arch:false});S.sample=false;mark('roster');render();break;}
+    case 'delp':{
+      var p=S.roster.find(function(x){return x.id===+b.getAttribute('data-id');});
+      if(p){p.arch=true;if(S.ui.pid===p.id)S.ui.pid=null;mark('roster');render();toast('外しました(過去の記録は残ります)');}break;}
+    case 'csvp':saveCsv('volley_stats.csv',statCsv());break;
+    case 'csve':saveCsv('volley_plays.csv',eventCsv());break;
+    case 'copyp':{
+      var txt=statCsv().replace('﻿','').replace(/,/g,'\t');
+      (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast('コピーしました。Excelに貼り付けできます');},function(){toast('コピーできませんでした');});
+      break;}
+  }
+});
+document.addEventListener('change',function(ev){
+  var t=ev.target,f=t.getAttribute&&t.getAttribute('data-f');
+  if(t.id==='scope'){S.ui.scope=t.value===S.curId?'cur':t.value;render();return;}
+  if(!f)return;
+  var id=t.getAttribute('data-id');
+  if(f==='keep'){S.ui.keep=t.checked;lsSave();return;}
+  if(f==='num'||f==='name'){
+    var p=S.roster.find(function(x){return x.id===+id;});
+    if(p){p[f]=t.value.trim();if(f==='num'&&!p.num){p.num='?';t.value='?';}S.sample=false;mark('roster');}
+  }else if(f==='mdate'||f==='mopp'){
+    var m=S.matches.find(function(x){return x.id===id;});
+    if(m){if(f==='mdate'&&t.value)m.date=t.value;if(f==='mopp')m.opp=t.value.trim();mark(m.id);}
+  }
+});
+
+/* ---------- boot ---------- */
+(function(){
+  var d=lsLoad();
+  if(d&&d.matches&&d.matches.length)applyLocal(d);else{seedLocal();lsSave();}
+  if(!cur())seedLocal();
+  S.curId=cur().id;
+  applySkin(S.ui.skin);
+  render();
+  connectDb();
+})();
+</script>
