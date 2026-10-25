@@ -142,6 +142,33 @@ h2{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin
 .qlast{display:flex;align-items:center;gap:8px;font-size:13px}
 .qlast .t{flex:1;min-width:0}
 .qlast button{min-height:36px}
+/* quick layout */
+.qlayout{display:flex;flex-direction:column;gap:12px}
+.qA{order:1}.qB{order:2}.qD{order:3}.qC{order:4}.qE{order:5}
+.qE{display:flex;flex-direction:column;gap:10px}
+@media (orientation:landscape) and (max-height:560px){
+  body{padding-block:8px 60px}
+  #app{max-width:920px}
+  .qlayout{display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-areas:"A C" "D C" "B C" "E C";grid-template-rows:auto auto auto 1fr;gap:8px 12px;align-items:start}
+  .qA{grid-area:A}.qB{grid-area:B}.qC{grid-area:C}.qD{grid-area:D}.qE{grid-area:E}
+  .qlog{display:none}
+  .qD.card{padding:6px 8px}
+  .qD .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qD .helpb{display:none}
+  .qD button{min-height:34px}
+  .card.mini .mb{grid-template-columns:1fr 1fr}
+  .card.mini .mset{grid-column:1/-1;order:3;justify-content:center}
+  .card.mini .manual{grid-template-columns:1fr}
+  .ms{flex-direction:column;align-items:center;gap:0}
+  .ms b{font-size:32px}
+  .qC.card{padding:8px}
+  .qgrid{gap:4px}
+  .qb,.both .qb{min-height:36px}
+  .qn b{font-size:20px}
+  #tabbar{padding-top:3px;padding-bottom:calc(3px + env(safe-area-inset-bottom,0px))}
+  #tabbar button{min-height:38px}
+}
+textarea{width:100%;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:8px 10px;font:inherit;color:inherit;margin-top:8px}
 /* tabs */
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
@@ -296,7 +323,7 @@ function causeLabel(key){
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
-  ui:{mode:'quick',qsk:'both',courtEdit:false,skin:'sakura',tab:'rec',pid:null,keep:false,stab:'at',scope:'cur',confirm:null,hint:true}};
+  ui:{mode:'quick',qsk:'at+rc',courtEdit:false,skin:'sakura',tab:'rec',pid:null,keep:false,stab:'at',scope:'cur',confirm:null,hint:true}};
 var $=function(s){return document.querySelector(s);};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -318,13 +345,17 @@ function seedLocal(){
 
 /* ---------- persistence ---------- */
 var col=null,dirty={},flushing=false,timer=null,sync='local';
+var QOPTS=[['at+rc','アタック+レシーブ'],['at+sv','アタック+サーブ'],['sv+rc','サーブ+レシーブ'],['at+sv+rc','3種類(横向き)'],['at','アタックだけ'],['sv','サーブだけ'],['rc','レシーブだけ']];
+function snapshot(){
+  return {roster:S.roster,nextPid:S.nextPid,matches:S.matches,curId:S.curId,sample:S.sample,keep:S.ui.keep,hint:S.ui.hint,skin:S.ui.skin,mode:S.ui.mode,qsk:S.ui.qsk,court:S.court};
+}
 function lsSave(){
-  try{localStorage.setItem(LS_KEY,JSON.stringify({roster:S.roster,nextPid:S.nextPid,matches:S.matches,curId:S.curId,sample:S.sample,keep:S.ui.keep,hint:S.ui.hint,skin:S.ui.skin,mode:S.ui.mode,qsk:S.ui.qsk,court:S.court}));}catch(e){}
+  try{localStorage.setItem(LS_KEY,JSON.stringify(snapshot()));}catch(e){}
 }
 function lsLoad(){try{var t=localStorage.getItem(LS_KEY);return t?JSON.parse(t):null;}catch(e){return null;}}
 function applyLocal(d){
   S.roster=d.roster||[];S.nextPid=d.nextPid||1;S.matches=d.matches||[];S.curId=d.curId;S.sample=!!d.sample;
-  S.ui.mode=d.mode==='detail'?'detail':'quick';S.ui.qsk=['both','at','rc'].indexOf(d.qsk)>=0?d.qsk:'both';S.court=d.court||null;S.ui.keep=!!d.keep;S.ui.hint=d.hint!==false;S.ui.skin=['sakura','violet','mint','sky'].indexOf(d.skin)>=0?d.skin:'sakura';
+  S.ui.mode=d.mode==='detail'?'detail':'quick';S.ui.qsk=(d.qsk==='both'?'at+rc':(QOPTS.some(function(o){return o[0]===d.qsk;})?d.qsk:'at+rc'));S.court=d.court||null;S.ui.keep=!!d.keep;S.ui.hint=d.hint!==false;S.ui.skin=['sakura','violet','mint','sky'].indexOf(d.skin)>=0?d.skin:'sakura';
 }
 function setSync(v){sync=v;var el=$('#syncchip');if(el)el.outerHTML=syncChip();}
 function syncChip(){
@@ -469,7 +500,8 @@ function vRecDetail(){
   '<details style="margin-top:6px"><summary>Aパス・Dなどの目安</summary><p class="muted">A: セッターが定位置から攻撃を組み立てられる返球 / B: やや乱れたが攻撃を選べる / C: 二段トスなど返すだけ / D: ミスまたはそのまま失点。基準はチームで決めて統一してください。</p><p class="muted">サーブの「効果的」は相手の攻撃を制限できた場合、トスの「トスミス」は打てなかったがラリーが続いた場合です。</p></details></section>';
 }
 
-var QSHORT={'at.k':'決定','at.c':'継続','at.b':'ブロ','at.e':'ミス','rc.a':'A','rc.b':'B','rc.c':'C','rc.d':'D'};
+var QSHORT={'at.k':'決定','at.c':'継続','at.b':'ブロ','at.e':'ミス','sv.a':'ACE','sv.g':'効果','sv.n':'普通','sv.e':'ミス','rc.a':'A','rc.b':'B','rc.c':'C','rc.d':'D'};
+var QLEG={at:'アタック: 決定=得点 / 継続=拾われた / ブロ=ブロックされ / ミス=アウト・ネット',sv:'サーブ: ACE=サーブで得点 / 効果=相手を崩した / 普通 / ミス=サーブミス',rc:'サーブレシーブ: A〜Dは評価で、Dは失点'};
 function courtPlayers(){
   var act=activePlayers();
   if(!S.court||!S.court.length)S.court=act.slice(0,7).map(function(p){return p.id;});
@@ -478,18 +510,28 @@ function courtPlayers(){
   return out;
 }
 function vQuick(){
-  var m=cur(),sk=S.ui.qsk||'both',groups=sk==='both'?['at','rc']:[sk],both=sk==='both';
+  var m=cur(),sk=S.ui.qsk||'at+rc',groups=sk.split('+'),nG=groups.length,both=nG>1;
+  var n=m.ev.length,last=n?m.ev[n-1]:null;
+  var bar='<section class="card qD"><div class="qlast"><span class="t muted">'+(last?'直前: '+esc(evText(last)):'選手の行の結果ボタンを押してください')+'</span><button data-do="undo"'+(n?'':' disabled')+'>取り消す</button><button class="helpb" data-do="help" aria-label="ヘルプ">？</button></div></section>';
+  var skseg='<div class="chips" role="group" aria-label="表に出すプレー">'+QOPTS.map(function(k){
+    return '<button data-do="qsk" data-k="'+k[0]+'" aria-pressed="'+(sk===k[0])+'">'+k[1]+'</button>';}).join('')+'</div>';
+  var ext='<div class="qE">'+skseg+'<button data-do="courtedit">出場メンバーを変える</button><div class="muted">ディグ・トス・ブロック・反則を記録するときは、上の「全プレー(2タップ)」に切り替えてください。</div></div>';
   if(S.ui.courtEdit){
     courtPlayers();
     var chips=activePlayers().map(function(p){
       var on=S.court.indexOf(p.id)>=0;
       return '<button class="pbtn'+(on?' on':'')+'" data-do="court" data-p="'+p.id+'" aria-pressed="'+on+'"><span class="no">'+esc(p.num)+'</span><span class="nm">'+esc(p.name||'　')+'</span></button>';
     }).join('');
-    return '<section class="card"><div class="mhead"><h2>いま出ている選手を選ぶ</h2><button class="btn-main" data-do="courtdone">完了</button></div><div class="pgrid">'+chips+'</div><div class="muted" style="margin-top:8px">タップで、出場中とベンチを切り替えます。出場中の選手だけが、記録の表に出ます。</div></section>';
+    return '<section class="card qC"><div class="mhead"><h2>いま出ている選手を選ぶ</h2><button class="btn-main" data-do="courtdone">完了</button></div><div class="pgrid">'+chips+'</div><div class="muted" style="margin-top:8px">タップで、出場中とベンチを切り替えます。出場中の選手だけが、記録の表に出ます。</div></section>';
   }
-  var cols=(both?'2.4em ':'2.9em ')+groups.map(function(){return 'repeat(4,minmax(0,1fr))';}).join(' 8px ');
-  var head='<div class="qgrid" style="grid-template-columns:'+cols+';margin-bottom:6px"><span></span>'+groups.map(function(g,i){
-    return '<span class="qgh" style="grid-column:'+(i?7:2)+' / span 4">'+ACT[g].pl+'</span>';}).join('')+'</div>';
+  if(nG===3&&window.innerWidth<640){
+    return bar+'<section class="card qC"><div class="empty">3種類を同時に表示するには、スマホを横向きにしてください。<br>縦向きのときは、下の切り替えで2種類までを選びます。</div></section>'+ext;
+  }
+  var lens=groups.map(function(g){return ACT[g].res.length;});
+  var cols=(both?'2.4em ':'2.9em ')+lens.map(function(l){return 'repeat('+l+',minmax(0,1fr))';}).join(' 8px ');
+  var start=2,head='<div class="qgrid" style="grid-template-columns:'+cols+';margin-bottom:6px"><span></span>';
+  groups.forEach(function(g,i){head+='<span class="qgh" style="grid-column:'+start+' / span '+lens[i]+'">'+ACT[g].pl+'</span>';start+=lens[i]+1;});
+  head+='</div>';
   var rows=courtPlayers().map(function(p){
     var cells=groups.map(function(g,gi){
       return ACT[g].res.map(function(r){
@@ -499,28 +541,20 @@ function vQuick(){
     }).join('');
     return '<div class="qn"><b>'+esc(p.num)+'</b><small>'+esc(p.name||'')+'</small></div>'+cells;
   }).join('');
-  var n=m.ev.length,last=n?m.ev[n-1]:null;
-  var skseg='<div class="seg" role="group" aria-label="表に出すプレー">'+[['both','両方'],['at','アタックだけ'],['rc','レシーブだけ']].map(function(k){
-    return '<button data-do="qsk" data-k="'+k[0]+'" aria-pressed="'+(sk===k[0])+'">'+k[1]+'</button>';}).join('')+'</div>';
-  return '<section class="card">'+
-    '<div class="qlast" style="margin-bottom:8px"><span class="t muted">'+(last?'直前: '+esc(evText(last)):'選手の行の結果ボタンを押してください')+'</span><button data-do="undo"'+(n?'':' disabled')+'>取り消す</button><button class="helpb" data-do="help" aria-label="ヘルプ">？</button></div>'+
-    head+'<div class="qgrid'+(both?' both':'')+'" style="grid-template-columns:'+cols+'">'+rows+'</div>'+
-    '<div class="muted" style="margin-top:10px">'+(both?'決定=得点 / 継続=拾われた / ブロ=ブロックされ / ミス=アウト・ネット。A〜Dはレシーブの評価で、Dは失点です。':'ボタンを押すと、その選手の1プレーが記録されます。')+'</div></section>'+
-    skseg+
-    '<div class="row" style="flex-wrap:wrap"><button class="sp" data-do="courtedit">出場メンバーを変える</button></div>'+
-    '<div class="muted">サーブ・ディグ・トス・ブロック・反則を記録するときは、上の「全プレー(2タップ)」に切り替えてください。</div>';
+  var leg=both?groups.map(function(g){return QLEG[g];}).join('<br>'):'ボタンを押すと、その選手の1プレーが記録されます。';
+  return bar+'<section class="card qC">'+head+'<div class="qgrid'+(both?' both':'')+'" style="grid-template-columns:'+cols+'">'+rows+'</div><div class="muted" style="margin-top:10px">'+leg+'</div></section>'+ext;
 }
 function vScoreMini(){
   var m=cur(),sc=scoreOf(m.ev,m.set);
-  return '<section class="card mini"><div class="mb"><div class="ms us"><span>自チーム</span><b>'+sc.us+'</b></div>'+
+  return '<section class="card mini qA"><div class="mb"><div class="ms us"><span>自チーム</span><b>'+sc.us+'</b></div>'+
     '<div class="mset"><button data-do="set" data-d="-1" aria-label="前のセット"'+(m.set<=1?' disabled':'')+'>‹</button><span>SET '+m.set+'</span><button data-do="set" data-d="1" aria-label="次のセット"'+(m.set>=5?' disabled':'')+'>›</button></div>'+
     '<div class="ms"><span>相手</span><b>'+sc.op+'</b></div></div>'+
     '<div class="manual"><button data-do="rec" data-a="pt" data-r="u">相手ミスで +1</button><button data-do="rec" data-a="pt" data-r="o">相手の得点 +1</button></div></section>';
 }
 function vRec(){
   var h=vRecDetail(),i=h.indexOf('<!--P1-->'),j=h.indexOf('<!--P2-->');
-  var seg='<div class="seg" role="group" aria-label="記録のしかた"><button data-do="mode" data-k="quick" aria-pressed="'+(S.ui.mode!=='detail')+'">1タップ記録</button><button data-do="mode" data-k="detail" aria-pressed="'+(S.ui.mode==='detail')+'">全プレー(2タップ)</button></div>';
-  if(S.ui.mode!=='detail')return (S.ui.help?helpHtml():'')+vScoreMini()+seg+vQuick()+h.slice(j);
+  var seg='<div class="seg qB" role="group" aria-label="記録のしかた"><button data-do="mode" data-k="quick" aria-pressed="'+(S.ui.mode!=='detail')+'">1タップ記録</button><button data-do="mode" data-k="detail" aria-pressed="'+(S.ui.mode==='detail')+'">全プレー(2タップ)</button></div>';
+  if(S.ui.mode!=='detail')return (S.ui.help?helpHtml():'')+'<div class="qlayout">'+vScoreMini()+seg+vQuick()+'</div><div class="qlog">'+h.slice(j)+'</div>';
   return h.slice(0,i)+seg+h.slice(i,j)+h.slice(j);
 }
 function flashBtn(pid,a,r){
@@ -631,6 +665,7 @@ function vTeam(){
     '<p class="muted">外した選手の過去の記録は集計に残ります。背番号は文字でも入力できます(例: L)。</p></section>'+
     '<section class="card"><label class="sw"><input type="checkbox" id="keep" data-f="keep"'+(S.ui.keep?' checked':'')+'><span><b>記録後も選手を選んだままにする</b><br><span class="muted">同じ選手が続けて触るトスやレシーブを入力するときに便利です。</span></span></label></section>'+
     '<section class="card"><h2>きせかえ</h2><div class="skins" style="margin-top:8px">'+[['sakura','さくら','#D63B82'],['violet','むらさき','#7B5BE0'],['mint','ミント','#0C8C75'],['sky','そら','#2A74D0']].map(function(k){return '<button data-do="skin" data-k="'+k[0]+'" aria-pressed="'+(S.ui.skin===k[0])+'"><span class="sw-dot" style="background:'+k[2]+'"></span>'+k[1]+'</button>';}).join('')+'</div></section>'+
+    '<section class="card"><h2>バックアップ</h2><p class="muted" style="margin:6px 0 8px">記録はこの端末のブラウザに保存されています。ブラウザのデータを消すと記録も消えるので、ときどき書き出してください。</p><div class="row" style="flex-wrap:wrap"><button class="sp" data-do="bkcopy">全データをコピー</button><button class="sp" data-do="bksave">ファイルに保存</button></div><textarea id="bktext" rows="3" placeholder="復元するときは、コピーした内容をここに貼り付けます"></textarea><button id="bkrestore" data-do="bkrestore" style="width:100%;margin-top:8px">貼り付けた内容で復元する</button></section>'+
     '<section class="card"><h2>保存について</h2><p class="muted" style="margin:6px 0 0">'+(col?'記録はアカウントに保存され、別の端末で開いても引き継がれます。他の端末で入力した直後は、ページを開き直すと反映されます。':'いまはこの端末のブラウザにだけ保存しています。サインインして開くとアカウントに保存されます。')+'集計タブからCSVも書き出せます。</p></section>';
 }
 function render(){
@@ -688,7 +723,10 @@ function eventCsv(){
 async function saveCsv(name,text){
   try{
     var dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
-    if(!dl){toast('この画面では保存できません。「集計をコピー」を使ってください');return;}
+    if(!dl){
+      var okA=false;
+      try{var blob=new Blob([text],{type:/\.json$/.test(name)?'application/json':'text/csv;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);okA=true;}catch(e2){}
+      toast(okA?'保存を始めました。ダウンロードを確認してください':'保存できませんでした。コピーを使ってください');return;}
     await dl.save({filename:name,data:text});
     toast('保存しました');
   }catch(e){
@@ -734,6 +772,26 @@ document.addEventListener('click',function(ev){
     case 'delp':{
       var p=S.roster.find(function(x){return x.id===+b.getAttribute('data-id');});
       if(p){p.arch=true;if(S.ui.pid===p.id)S.ui.pid=null;mark('roster');render();toast('外しました(過去の記録は残ります)');}break;}
+    case 'bkcopy':{
+      var js=JSON.stringify(snapshot());
+      (navigator.clipboard?navigator.clipboard.writeText(js):Promise.reject()).then(function(){toast('コピーしました。メモなどに貼って保管してください');},function(){toast('コピーできませんでした。「ファイルに保存」を試してください');});
+      break;}
+    case 'bksave':saveCsv('volley_backup.json',JSON.stringify(snapshot()));break;
+    case 'bkrestore':{
+      var ta=$('#bktext'),txt2=ta?ta.value.trim():'';
+      if(!txt2){toast('先に、コピーした内容を貼り付けてください');break;}
+      if(b.getAttribute('data-armed')!=='1'){b.setAttribute('data-armed','1');b.textContent='本当に復元する(いまの記録は置き換わります)';break;}
+      try{
+        var d2=JSON.parse(txt2);
+        if(!d2||!Array.isArray(d2.matches)||!d2.matches.length||!Array.isArray(d2.roster))throw 0;
+        d2.matches.forEach(function(x){if(!x.id||!Array.isArray(x.ev))throw 0;});
+        applyLocal(d2);S.touched=true;
+        if(!S.matches.some(function(x){return x.id===S.curId;}))S.curId=S.matches[S.matches.length-1].id;
+        lsSave();
+        if(col){dirty.roster=1;S.matches.forEach(function(x){dirty[x.id]=1;});flush();}
+        applySkin(S.ui.skin);render();toast('復元しました');
+      }catch(e){b.removeAttribute('data-armed');b.textContent='貼り付けた内容で復元する';toast('復元できませんでした。内容が正しいか確認してください');}
+      break;}
     case 'csvp':saveCsv('volley_stats.csv',statCsv());break;
     case 'csve':saveCsv('volley_plays.csv',eventCsv());break;
     case 'copyp':{
@@ -764,6 +822,8 @@ document.addEventListener('change',function(ev){
   if(!cur())seedLocal();
   S.curId=cur().id;
   applySkin(S.ui.skin);
+  var wasNarrow=window.innerWidth<640;
+  window.addEventListener('resize',function(){var nw=window.innerWidth<640;if(nw!==wasNarrow){wasNarrow=nw;if(S.ui.tab==='rec')render();}});
   render();
   connectDb();
 })();
