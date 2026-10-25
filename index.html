@@ -169,6 +169,17 @@ h2{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin
   #tabbar button{min-height:38px}
 }
 textarea{width:100%;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:8px 10px;font:inherit;color:inherit;margin-top:8px}
+/* summary (fits one phone screen, no horizontal scroll) */
+.shot{padding:10px 8px}
+.shot-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px 4px}
+.shot-h b{font-size:15px}
+.shot-h .muted{font-size:11px}
+.sumh{font-size:12px;font-weight:700;color:var(--accent);padding:8px 4px 3px}
+table.fit{table-layout:fixed;width:100%;font-size:12px}
+table.fit th,table.fit td{padding:3px 1px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip}
+table.fit th{font-size:10px;font-weight:700}
+table.fit th:first-child,table.fit td:first-child{width:21%;text-align:left;padding-left:4px;position:static;text-overflow:ellipsis}
+table.fit td{padding-top:4px;padding-bottom:4px}
 /* tabs */
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
@@ -300,7 +311,7 @@ function pstat(o){
   s.rcN=tot('rc');s.rcA1=g('rc','a');s.rcB1=g('rc','b');s.rcC1=g('rc','c');s.rcD1=g('rc','d');
   s.rcARate=ratio(s.rcA1,s.rcN);s.rcABRate=ratio(s.rcA1+s.rcB1,s.rcN);
   s.dgN=tot('dg');s.dgG=g('dg','g');s.dgP=g('dg','p');s.dgE=g('dg','e');s.dgRate=ratio(s.dgG,s.dgN);
-  s.tsN=tot('ts');s.tsG=g('ts','g');s.tsM=g('ts','m');s.tsX=g('ts','x');s.tsErr=ratio(s.tsM+s.tsX,s.tsN);
+  s.tsN=tot('ts');s.tsG=g('ts','g');s.tsM=g('ts','m');s.tsX=g('ts','x');s.tsErr=ratio(s.tsM+s.tsX,s.tsN);s.tsMiss=s.tsM+s.tsX;
   s.blK=g('bl','k');s.blT=g('bl','t');s.blE=g('bl','e');
   s.otN=tot('ot');
   return s;
@@ -323,7 +334,7 @@ function causeLabel(key){
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
-  ui:{mode:'quick',qsk:'at+rc',courtEdit:false,skin:'sakura',tab:'rec',pid:null,keep:false,stab:'at',scope:'cur',confirm:null,hint:true}};
+  ui:{mode:'quick',qsk:'at+rc',courtEdit:false,skin:'sakura',tab:'rec',pid:null,keep:false,stab:'all',scope:'cur',confirm:null,hint:true}};
 var $=function(s){return document.querySelector(s);};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -596,6 +607,31 @@ function statRows(evs){
   var total=pstat(sumObj(all));
   return {rows:rows,total:total};
 }
+function fitCell(v,type){
+  if(type==='p')return v==null?'-':(v*100).toFixed(1);
+  return v;
+}
+function fitTable(title,cols,R,filt){
+  var rows=R.rows.filter(function(r){return filt(r.s);});
+  if(!rows.length)return '';
+  var head='<tr><th>選手</th>'+cols.map(function(c){return '<th>'+c[0]+'</th>';}).join('')+'</tr>';
+  var body=rows.map(function(r){
+    return '<tr><td>'+esc(r.label)+'</td>'+cols.map(function(c){return '<td'+(c[3]?' class="hi"':'')+'>'+fitCell(r.s[c[1]],c[2])+'</td>';}).join('')+'</tr>';
+  }).join('');
+  var tot='<tr class="total"><td>計</td>'+cols.map(function(c){return '<td>'+fitCell(R.total[c[1]],c[2])+'</td>';}).join('')+'</tr>';
+  return '<div class="sumh">'+title+'</div><table class="fit"><thead>'+head+'</thead><tbody>'+body+tot+'</tbody></table>';
+}
+function vSummary(evs,ms){
+  var one=ms.length===1?ms[0]:null,R=statRows(evs);
+  var title=one?(mdStr(one.date)+' 対 '+(one.opp||'相手未設定')):'全試合の通算';
+  var sub=one?matchSummary(one):ms.length+'試合';
+  var at=fitTable('アタック',[['打数','atN'],['決定','atK'],['継続','atC'],['被ブロ','atB'],['ミス','atE'],['決定率','atRate','p',1],['効果率','atEff','p',1]],R,function(s){return s.atN>0;});
+  var sv=fitTable('サーブ',[['本数','svN'],['ACE','svA'],['効果','svG'],['普通','svNo'],['ミス','svE'],['ACE率','svAceRate','p',1],['ミス率','svErrRate','p']],R,function(s){return s.svN>0;});
+  var rc=fitTable('サーブレシーブ',[['本数','rcN'],['A','rcA1'],['B','rcB1'],['C','rcC1'],['D','rcD1'],['A率','rcARate','p',1],['A+B率','rcABRate','p']],R,function(s){return s.rcN>0;});
+  var ot=fitTable('その他',[['ディグ','dgN'],['成功率','dgRate','p'],['トス','tsN'],['ミス','tsMiss'],['ブロ得点','blK'],['反則','otN']],R,function(s){return s.dgN+s.tsN+s.blK+s.otN>0;});
+  var foot='<div class="muted" style="margin-top:8px;font-size:11px">率は%。決定率=決定÷打数 / 効果率=(決定−被ブロック−ミス)÷打数 / A率=A÷本数 / A+B率=(A+B)÷本数</div>';
+  return '<section class="card shot"><div class="shot-h"><b>'+esc(title)+'</b><span class="muted">'+esc(sub)+'</span></div>'+(at+sv+rc+ot||'<div class="muted">記録がありません</div>')+foot+'</section>';
+}
 function vStat(){
   var ms=scopeMatches(),evs=[];
   ms.forEach(function(m){evs=evs.concat(m.ev);});
@@ -607,10 +643,12 @@ function vStat(){
     return head+'<div class="card empty">この範囲の記録はまだありません。<br>「記録」タブで選手と結果を押すと、ここに選手ごとの集計が出ます。</div>';
   }
   var tabs='<div class="chips" role="group" aria-label="集計の種類">'+
-    Object.keys(TABS).map(function(k){return '<button data-do="stab" data-k="'+k+'" aria-pressed="'+(S.ui.stab===k)+'">'+TABS[k].n+'</button>';}).join('')+
+    ['all'].concat(Object.keys(TABS)).map(function(k){return '<button data-do="stab" data-k="'+k+'" aria-pressed="'+(S.ui.stab===k)+'">'+(k==='all'?'まとめ':TABS[k].n)+'</button>';}).join('')+
     '<button data-do="stab" data-k="pt" aria-pressed="'+(S.ui.stab==='pt')+'">得点・失点の内訳</button></div>';
   var body='';
-  if(S.ui.stab==='pt'){
+  if(S.ui.stab==='all'){
+    body=vSummary(evs,ms);
+  }else if(S.ui.stab==='pt'){
     var c=causes(evs);
     var mk=function(obj,cls){
       var keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];});
