@@ -181,6 +181,8 @@ table.fit th{font-size:10px;font-weight:700}
 table.fit th:first-child,table.fit td:first-child{width:21%;text-align:left;padding-left:4px;position:static;text-overflow:ellipsis}
 table.fit td{padding-top:4px;padding-bottom:4px}
 .ver{text-align:center;font-size:11px;color:var(--muted);padding:4px 0}
+.qgrid.dense .qb{min-height:44px}
+.qgrid.dense{gap:5px}
 /* tabs */
 #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
@@ -332,7 +334,7 @@ function causeLabel(key){
 }
 // ==PURE-END==
 
-var APP_VERSION='v1.9.1 (2026-10-25)';
+var APP_VERSION='v1.9.2 (2026-10-25)';
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
@@ -523,20 +525,14 @@ function vRecDetail(){
 
 var QSHORT={'at.k':'決定','at.c':'継続','at.b':'ブロ','at.e':'ミス','sv.a':'ACE','sv.g':'効果','sv.n':'普通','sv.e':'ミス','rc.a':'A','rc.b':'B','rc.c':'C','rc.d':'D'};
 var QLEG={at:'アタック: 決定=得点 / 継続=拾われた / ブロ=ブロックされ / ミス=アウト・ネット',sv:'サーブ: ACE=サーブで得点 / 効果=相手を崩した / 普通 / ミス=サーブミス',rc:'サーブレシーブ: A〜Dは評価で、Dは失点'};
-function courtPlayers(){
-  var act=activePlayers();
-  if(!S.court||!S.court.length)S.court=act.slice(0,7).map(function(p){return p.id;});
-  var out=[];
-  S.court.forEach(function(id){var p=act.find(function(x){return x.id===id;});if(p)out.push(p);});
-  return out;
-}
+function courtPlayers(){return activePlayers();}
 function vQuick(){
   var m=cur(),sk=S.ui.qsk||'at+rc',groups=sk.split('+'),nG=groups.length,both=nG>1;
   var n=m.ev.length,last=n?m.ev[n-1]:null;
   var bar='<section class="card qD"><div class="qlast"><span class="t muted">'+(last?'直前: '+esc(evText(last)):'選手の行の結果ボタンを押してください')+'</span><button data-do="undo"'+(n?'':' disabled')+'>取り消す</button><button class="helpb" data-do="help" aria-label="ヘルプ">？</button></div></section>';
   var skseg='<div class="chips" role="group" aria-label="表に出すプレー">'+QOPTS.map(function(k){
     return '<button data-do="qsk" data-k="'+k[0]+'" aria-pressed="'+(sk===k[0])+'">'+k[1]+'</button>';}).join('')+'</div>';
-  var ext='<div class="qE">'+skseg+'<button data-do="courtedit">出場メンバーを変える</button><div class="muted">ディグ・トス・ブロック・反則を記録するときは、上の「全プレー(2タップ)」に切り替えてください。</div></div>';
+  var ext='<div class="qE">'+skseg+'<div class="muted">ディグ・トス・ブロック・反則を記録するときは、上の「全プレー(2タップ)」に切り替えてください。</div></div>';
   if(S.ui.courtEdit){
     courtPlayers();
     var chips=activePlayers().map(function(p){
@@ -553,6 +549,7 @@ function vQuick(){
   var start=2,head='<div class="qgrid" style="grid-template-columns:'+cols+';margin-bottom:6px"><span></span>';
   groups.forEach(function(g,i){head+='<span class="qgh" style="grid-column:'+start+' / span '+lens[i]+'">'+ACT[g].pl+'</span>';start+=lens[i]+1;});
   head+='</div>';
+  var rowsN=courtPlayers().length;
   var rows=courtPlayers().map(function(p){
     var cells=groups.map(function(g,gi){
       return ACT[g].res.map(function(r){
@@ -563,7 +560,7 @@ function vQuick(){
     return '<div class="qn"><b>'+esc(p.num)+'</b><small>'+esc(p.name||'')+'</small></div>'+cells;
   }).join('');
   var leg=both?groups.map(function(g){return QLEG[g];}).join('<br>'):'ボタンを押すと、その選手の1プレーが記録されます。';
-  return bar+'<section class="card qC">'+head+'<div class="qgrid'+(both?' both':'')+'" style="grid-template-columns:'+cols+'">'+rows+'</div><div class="muted" style="margin-top:10px">'+leg+'</div></section>'+ext;
+  return bar+'<section class="card qC">'+head+'<div class="qgrid'+(both?' both':'')+(rowsN>8?' dense':'')+'" style="grid-template-columns:'+cols+'">'+rows+'</div><div class="muted" style="margin-top:10px">'+leg+'</div></section>'+ext;
 }
 function vScoreMini(){
   var m=cur(),sc=scoreOf(m.ev,m.set);
