@@ -332,7 +332,7 @@ function causeLabel(key){
 }
 // ==PURE-END==
 
-var APP_VERSION='v1.9.0 (2026-10-25)';
+var APP_VERSION='v1.9.1 (2026-10-25)';
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
@@ -572,11 +572,25 @@ function vScoreMini(){
     '<div class="ms"><span>相手</span><b>'+sc.op+'</b></div></div>'+
     '<div class="manual"><button data-do="rec" data-a="pt" data-r="u">相手ミスで +1</button><button data-do="rec" data-a="pt" data-r="o">相手の得点 +1</button></div></section>';
 }
+function updBanner(){
+  return S.ui.newVer?'<div class="card hint"><div class="row"><div class="sp">新しい版(<b>'+esc(S.ui.newVer)+'</b>)があります。記録は消えません。</div><button class="btn-main" data-do="reload">更新する</button></div></div>':'';
+}
+function reloadFresh(){
+  try{location.href=location.pathname+'?v='+Date.now();}catch(e){location.reload();}
+}
+function checkUpdate(){
+  try{
+    fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
+      var m=t&&t.match(/APP_VERSION='([^']+)'/);
+      if(m&&m[1]!==APP_VERSION){S.ui.newVer=m[1];render();}
+    }).catch(function(){});
+  }catch(e){}
+}
 function vRec(){
   var h=vRecDetail(),i=h.indexOf('<!--P1-->'),j=h.indexOf('<!--P2-->');
   var seg='<div class="seg qB" role="group" aria-label="記録のしかた"><button data-do="mode" data-k="quick" aria-pressed="'+(S.ui.mode!=='detail')+'">1タップ記録</button><button data-do="mode" data-k="detail" aria-pressed="'+(S.ui.mode==='detail')+'">全プレー(2タップ)</button></div>';
-  if(S.ui.mode!=='detail')return (S.ui.help?helpHtml():'')+'<div class="qlayout">'+vScoreMini()+seg+vQuick()+'</div><div class="qlog">'+h.slice(j)+'</div>';
-  return h.slice(0,i)+seg+h.slice(i,j)+h.slice(j);
+  if(S.ui.mode!=='detail')return updBanner()+(S.ui.help?helpHtml():'')+'<div class="qlayout">'+vScoreMini()+seg+vQuick()+'</div><div class="qlog">'+h.slice(j)+'</div>';
+  return updBanner()+h.slice(0,i)+seg+h.slice(i,j)+h.slice(j);
 }
 function flashBtn(pid,a,r){
   var el=document.querySelector('.qb[data-p="'+pid+'"][data-a="'+a+'"][data-r="'+r+'"]');
@@ -720,6 +734,7 @@ function vTeam(){
     '<section class="card"><h2>バックアップ</h2><p class="muted" style="margin:6px 0 8px">記録はこの端末のブラウザに保存されています。ブラウザのデータを消すと記録も消えるので、ときどき書き出してください。</p><div class="row" style="flex-wrap:wrap"><button class="sp" data-do="bkcopy">全データをコピー</button><button class="sp" data-do="bksave">ファイルに保存</button></div><textarea id="bktext" rows="3" placeholder="復元するときは、コピーした内容をここに貼り付けます"></textarea><button id="bkmerge" data-do="bkmerge" class="btn-main" style="width:100%;margin-top:8px">追加で取り込む(いまの記録は残す)</button><details style="margin-top:8px"><summary>上級: いまの記録をすべて消して置き換える</summary><p class="muted">貼り付けた内容だけが残り、いまの記録は消えます。通常は上の「追加で取り込む」を使ってください。</p><button id="bkrestore" data-do="bkrestore" class="btn-bad" style="width:100%">いまの記録を消して、貼り付けた内容に置き換える</button></details></section>'+
     '<section class="card"><h2>削除・取り込みの前の状態</h2><p class="muted" style="margin:6px 0 8px">試合やセットの削除、取り込みの直前の状態を、最大5つまで自動で保管しています。押すと、その時点に戻ります。</p>'+
     (undoList().length?undoList().map(function(u,i){return '<div class="row" style="margin-bottom:8px"><span class="sp">'+esc(fmtAt(u.at)+'　'+u.label)+'<br><span class="muted">試合'+((u.data&&u.data.matches)?u.data.matches.length:0)+'件</span></span><button data-do="undorest" data-i="'+i+'">この時点に戻す</button></div>';}).join(''):'<div class="muted">まだありません</div>')+'</section>'+
+    '<section class="card"><h2>バージョン</h2><p class="muted" style="margin:6px 0 8px">いまの版: '+APP_VERSION+'。古い画面のままのときは、下のボタンで最新版を読み込みます。記録は消えません。</p><button data-do="reload" style="width:100%">最新版を読み込み直す</button></section>'+
     '<section class="card"><h2>保存について</h2><p class="muted" style="margin:6px 0 0">'+(col?'記録はアカウントに保存され、別の端末で開いても引き継がれます。他の端末で入力した直後は、ページを開き直すと反映されます。':'いまはこの端末のブラウザにだけ保存しています。サインインして開くとアカウントに保存されます。')+'集計タブからCSVも書き出せます。</p></section>';
 }
 function render(){
@@ -806,6 +821,7 @@ document.addEventListener('click',function(ev){
     case 'courtdone':S.ui.courtEdit=false;lsSave();render();break;
     case 'court':{var cid=+b.getAttribute('data-p'),ix=S.court.indexOf(cid);if(ix>=0)S.court.splice(ix,1);else S.court.push(cid);lsSave();render();break;}
     case 'qrec':{var qp=+b.getAttribute('data-p'),qa=b.getAttribute('data-a'),qr=b.getAttribute('data-r');S.ui.pid=qp;record(qa,qr);S.ui.pid=null;flashBtn(qp,qa,qr);break;}
+    case 'reload':reloadFresh();break;
     case 'hidehint':S.ui.hint=false;lsSave();render();break;
     case 'retry':if(col){dirty[m.id]=1;dirty.roster=1;flush();}break;
     case 'stab':S.ui.stab=b.getAttribute('data-k');render();break;
@@ -931,5 +947,6 @@ document.addEventListener('change',function(ev){
   window.addEventListener('resize',function(){var nw=window.innerWidth<640;if(nw!==wasNarrow){wasNarrow=nw;if(S.ui.tab==='rec')render();}});
   render();
   connectDb();
+  checkUpdate();
 })();
 </script>
