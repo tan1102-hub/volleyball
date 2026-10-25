@@ -337,7 +337,7 @@ function causeLabel(key){
 }
 // ==PURE-END==
 
-var APP_VERSION='v1.10.0 (2026-10-25)';
+var APP_VERSION='v1.10.1 (2026-10-25)';
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
@@ -660,17 +660,35 @@ function vSummary(evs,ms){
   var R=statRows(evs),h=sumHead(ms);
   var tables=SUMSPEC.map(function(sp){return fitTable(sp.t,sp.cols,R,sp.f);}).join('');
   var foot='<div class="muted" style="margin-top:8px;font-size:11px">'+SUMFOOT.join(' / ')+'</div>';
-  return '<button class="btn-main" data-do="sumimg" style="width:100%">1枚の画像にして保存する(スクショ不要)</button>'+
-    '<section class="card shot"><div class="shot-h"><b>'+esc(h.title)+'</b><span class="muted">'+esc(h.sub)+'</span></div>'+(tables||'<div class="muted">記録がありません</div>')+foot+'</section>';
+  return '<section class="card shot"><div class="shot-h"><b>'+esc(h.title)+'</b><span class="muted">'+esc(h.sub)+'</span></div>'+(tables||'<div class="muted">記録がありません</div>')+foot+'</section>';
+}
+function imgSpec(evs,ms){
+  var hd=sumHead(ms),R=statRows(evs),k=S.ui.stab,secs=[],bars=[],foot=[];
+  if(k==='all'){
+    SUMSPEC.forEach(function(sp){var rows=R.rows.filter(function(r){return sp.f(r.s);});if(rows.length)secs.push({t:sp.t,cols:sp.cols,rows:rows,tl:'計'});});
+    foot=SUMFOOT;
+  }else if(k==='pt'){
+    var c=causes(evs);
+    var mk=function(obj){var keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];});var tot=keys.reduce(function(a,x){return a+obj[x];},0);return {tot:tot,items:keys.map(function(x){return [causeLabel(x),obj[x],tot?obj[x]/tot:0];})};};
+    var l=mk(c.loss),g=mk(c.gain);
+    bars.push({t:'失点の内訳(計 '+l.tot+'点)',items:l.items,color:'#E06A6A'});
+    bars.push({t:'得点の内訳(計 '+g.tot+'点)',items:g.items,color:'#4FAE8A'});
+    foot=['「相手の得点」「相手のミス」は手入力した分です。'];
+  }else{
+    var T=TABS[k];
+    var rows=R.rows.filter(function(r){return T.cols.some(function(cc){return cc[2]!=='p'&&r.s[cc[1]]>0;});});
+    secs.push({t:T.n,cols:T.cols,rows:rows,tl:'チーム計'});
+    if(T.help)foot=[T.help];
+  }
+  return {hd:hd,total:R.total,secs:secs,bars:bars,foot:foot};
 }
 function drawSummary(evs,ms){
-  var R=statRows(evs),hd=sumHead(ms),W=1080,pad=28,rowH=62,hdrH=48,secH=64;
+  var sp0=imgSpec(evs,ms),hd=sp0.hd,secs=sp0.secs,bars=sp0.bars,foot=sp0.foot,W=1080,pad=28,rowH=62,hdrH=48,secH=64,barH=56;
   var font='"Zen Maru Gothic","Noto Sans JP",system-ui,sans-serif';
-  var secs=[];
-  SUMSPEC.forEach(function(sp){var rows=R.rows.filter(function(r){return sp.f(r.s);});if(rows.length)secs.push({sp:sp,rows:rows});});
   var H=pad+110;
   secs.forEach(function(x){H+=secH+hdrH+(x.rows.length+1)*rowH+14;});
-  H+=96+pad;
+  bars.forEach(function(b){H+=secH+Math.max(1,b.items.length)*barH+14;});
+  H+=foot.length*34+40+pad;
   var c=document.createElement('canvas');c.width=W;c.height=H;
   var g=c.getContext('2d');
   g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);g.textBaseline='middle';
@@ -678,12 +696,13 @@ function drawSummary(evs,ms){
   g.fillStyle='#6C6C78';g.font='500 26px '+font;g.fillText(hd.sub,pad,pad+72);
   var y=pad+110,tw=W-pad*2,c0=Math.round(tw*0.22);
   function clip(t,maxW){if(g.measureText(t).width<=maxW)return t;while(t.length>1&&g.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
+  function fitTxt(t,weight,size,maxW){var z=size;g.font=weight+z+'px '+font;while(z>12&&g.measureText(t).width>maxW){z--;g.font=weight+z+'px '+font;}}
   secs.forEach(function(x){
-    var cols=x.sp.cols,cw=(tw-c0)/cols.length;
-    g.textAlign='left';g.fillStyle='#D63B82';g.font='700 32px '+font;g.fillText(x.sp.t,pad,y+secH/2);y+=secH;
+    var cols=x.cols,cw=(tw-c0)/cols.length;
+    g.textAlign='left';g.fillStyle='#D63B82';g.font='700 32px '+font;g.fillText(x.t,pad,y+secH/2);y+=secH;
     g.fillStyle='#F4F2F5';g.fillRect(pad,y,tw,hdrH);
     g.fillStyle='#6C6C78';g.font='700 22px '+font;g.textAlign='left';g.fillText('選手',pad+12,y+hdrH/2);
-    g.textAlign='center';cols.forEach(function(col,i){g.fillText(col[0],pad+c0+cw*i+cw/2,y+hdrH/2);});
+    g.textAlign='center';cols.forEach(function(col,i){fitTxt(col[0],'700 ',22,cw-8);g.fillText(col[0],pad+c0+cw*i+cw/2,y+hdrH/2);});
     y+=hdrH;
     function drawRow(label,st,total){
       if(total){g.fillStyle='#F4F2F5';g.fillRect(pad,y,tw,rowH);}
@@ -698,11 +717,24 @@ function drawSummary(evs,ms){
       y+=rowH;
     }
     x.rows.forEach(function(r){drawRow(r.label,r.s,false);});
-    drawRow('計',R.total,true);
+    drawRow(x.tl,sp0.total,true);
+    y+=14;
+  });
+  bars.forEach(function(b){
+    g.textAlign='left';g.fillStyle='#D63B82';g.font='700 32px '+font;g.fillText(b.t,pad,y+secH/2);y+=secH;
+    if(!b.items.length){g.fillStyle='#6C6C78';g.font='500 26px '+font;g.fillText('記録なし',pad+12,y+barH/2);y+=barH;}
+    var lw=Math.round(tw*0.38),vw=190,trw=tw-lw-vw;
+    b.items.forEach(function(it){
+      g.textAlign='left';g.fillStyle='#2A2A31';g.font='500 26px '+font;g.fillText(clip(it[0],lw-12),pad+12,y+barH/2);
+      g.fillStyle='#F0EDF0';g.fillRect(pad+lw,y+barH/2-10,trw,20);
+      g.fillStyle=b.color;g.fillRect(pad+lw,y+barH/2-10,Math.max(2,trw*it[2]),20);
+      g.textAlign='right';g.fillStyle='#2A2A31';g.font='700 26px '+font;g.fillText(it[1]+'本 '+Math.round(it[2]*100)+'%',pad+tw-6,y+barH/2);
+      y+=barH;
+    });
     y+=14;
   });
   g.textAlign='left';g.fillStyle='#6C6C78';g.font='500 22px '+font;
-  SUMFOOT.forEach(function(t,i){g.fillText(t,pad,y+24+i*34);});
+  foot.forEach(function(t,i){g.fillText(t,pad,y+24+i*34);});
   return c;
 }
 var lastImg=null,lastImgUrl=null;
@@ -769,8 +801,9 @@ function vStat(){
     var tt='<tr class="total"><td>チーム計</td>'+T.cols.map(function(c){return '<td>'+fmtCell(R.total[c[1]],c[2])+'</td>';}).join('')+'</tr>';
     body='<div class="tw"><table><thead>'+th+'</thead><tbody>'+tr+tt+'</tbody></table></div>'+(T.help?'<div class="muted">'+T.help+'</div>':'');
   }
+  var imgbtn='<button class="btn-main" data-do="sumimg" style="width:100%;margin:8px 0">この画面を1枚の画像にして保存(スクショ不要)</button>';
   var exp='<section class="card"><div class="mhead"><h2>Excel用に書き出す</h2></div><div class="row" style="flex-wrap:wrap"><button class="sp" data-do="csvp">選手別集計 CSV</button><button class="sp" data-do="csve">全プレー記録 CSV</button><button class="sp" data-do="copyp">集計をコピー</button></div></section>';
-  return head+tabs+body+exp;
+  return head+tabs+imgbtn+body+exp;
 }
 
 function matchSummary(m){
