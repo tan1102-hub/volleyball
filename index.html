@@ -337,7 +337,7 @@ function causeLabel(key){
 }
 // ==PURE-END==
 
-var APP_VERSION='v1.10.1 (2026-10-25)';
+var APP_VERSION='v1.10.2 (2026-10-25)';
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
@@ -654,7 +654,10 @@ var SUMSPEC=[
 var SUMFOOT=['率は%。決定率=決定÷打数 / 効果率=(決定−被ブロック−ミス)÷打数','A率=A÷本数 / A+B率=(A+B)÷本数'];
 function sumHead(ms){
   var one=ms.length===1?ms[0]:null;
-  return {title:one?(mdStr(one.date)+' 対 '+(one.opp||'相手未設定')):'全試合の通算',sub:one?matchSummary(one):ms.length+'試合'};
+  if(one)return {title:mdStr(one.date)+' 対 '+(one.opp||'相手未設定'),sub:matchSummary(one),parts:[matchSummary(one)]};
+  var ds=[];ms.forEach(function(m){var d=mdStr(m.date);if(ds.indexOf(d)<0)ds.push(d);});
+  var ps=ms.map(function(m){var n=setsOf(m.ev,m.set).filter(function(k){return k<=m.set||m.ev.some(function(e){return e[0]===k;});}).length;return '対 '+(m.opp||'相手未設定')+'('+n+'セット)';});
+  return {title:ds.join('・')+' 全試合の通算',sub:ms.length+'試合: '+ps.join(' / '),parts:[ms.length+'試合:'].concat(ps)};
 }
 function vSummary(evs,ms){
   var R=statRows(evs),h=sumHead(ms);
@@ -685,7 +688,10 @@ function imgSpec(evs,ms){
 function drawSummary(evs,ms){
   var sp0=imgSpec(evs,ms),hd=sp0.hd,secs=sp0.secs,bars=sp0.bars,foot=sp0.foot,W=1080,pad=28,rowH=62,hdrH=48,secH=64,barH=56;
   var font='"Zen Maru Gothic","Noto Sans JP",system-ui,sans-serif';
-  var H=pad+110;
+  var subLines=[],tmp=document.createElement('canvas').getContext('2d');tmp.font='500 26px '+font;
+  (function(){var cur='';hd.parts.forEach(function(t){var n=cur?cur+'  '+t:t;if(cur&&tmp.measureText(n).width>W-pad*2){subLines.push(cur);cur=t;}else cur=n;});if(cur)subLines.push(cur);})();
+  var top=pad+80+subLines.length*38;
+  var H=top;
   secs.forEach(function(x){H+=secH+hdrH+(x.rows.length+1)*rowH+14;});
   bars.forEach(function(b){H+=secH+Math.max(1,b.items.length)*barH+14;});
   H+=foot.length*34+40+pad;
@@ -693,8 +699,8 @@ function drawSummary(evs,ms){
   var g=c.getContext('2d');
   g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);g.textBaseline='middle';
   g.textAlign='left';g.fillStyle='#2A2A31';g.font='700 40px '+font;g.fillText(hd.title,pad,pad+26);
-  g.fillStyle='#6C6C78';g.font='500 26px '+font;g.fillText(hd.sub,pad,pad+72);
-  var y=pad+110,tw=W-pad*2,c0=Math.round(tw*0.22);
+  g.fillStyle='#6C6C78';g.font='500 26px '+font;subLines.forEach(function(t,i){g.fillText(t,pad,pad+72+i*38);});
+  var y=top,tw=W-pad*2,c0=Math.round(tw*0.22);
   function clip(t,maxW){if(g.measureText(t).width<=maxW)return t;while(t.length>1&&g.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
   function fitTxt(t,weight,size,maxW){var z=size;g.font=weight+z+'px '+font;while(z>12&&g.measureText(t).width>maxW){z--;g.font=weight+z+'px '+font;}}
   secs.forEach(function(x){
