@@ -337,7 +337,7 @@ function causeLabel(key){
 }
 // ==PURE-END==
 
-var APP_VERSION='v1.10.2 (2026-10-25)';
+var APP_VERSION='v1.11.0 (2026-10-26)';
 var LS_KEY='vbrec.v1';
 function applySkin(k){try{if(k&&k!=='sakura')document.documentElement.setAttribute('data-skin',k);else document.documentElement.removeAttribute('data-skin');}catch(e){}}
 var S={roster:[],nextPid:1,matches:[],curId:null,sample:false,touched:false,
@@ -830,7 +830,9 @@ function vMatch(){
       '</div>';
   }).join('');
   return '<section class="card"><h2>新しい試合</h2><div class="two" style="margin-top:8px"><input type="date" id="nm-date" value="'+todayStr()+'" aria-label="日付"><input type="text" id="nm-opp" placeholder="相手チーム名" aria-label="相手チーム名"></div>'+
-    '<button class="btn-main" data-do="newmatch" style="width:100%;margin-top:8px">試合を追加して記録を始める</button></section>'+list;
+    '<button class="btn-main" data-do="newmatch" style="width:100%;margin-top:8px">試合を追加して記録を始める</button></section>'+list+
+    (function(){var n=0;S.matches.forEach(function(m){n+=m.ev.length;});var cf=S.ui.confirm==='rm';
+      return '<section class="card"><h2>このタブを初期化</h2><p class="muted" style="margin:6px 0 8px">'+(cf?'試合'+S.matches.length+'件・記録'+n+'件をすべて消して、空の試合1つにします。選手の登録は残ります。(直前の状態は「選手」タブの「削除・取り込みの前の状態」から戻せます)':'すべての試合と記録を消して、空の試合1つに戻します。日付が変わったときなどに使います。')+'</p><button class="btn-bad" data-do="resetmatches" style="width:100%">'+(cf?'本当に初期化する':'試合と記録をすべて消す')+'</button>'+(cf?'<button data-do="resetcancel" style="width:100%;margin-top:8px">やめる</button>':'')+'</section>';})();
 }
 function vTeam(){
   var rows=activePlayers().map(function(p){
@@ -840,6 +842,7 @@ function vTeam(){
     '<button data-do="addp" style="width:100%">選手を追加</button>'+
     '<p class="muted">外した選手の過去の記録は集計に残ります。背番号は文字でも入力できます(例: L)。</p></section>'+
     '<section class="card"><label class="sw"><input type="checkbox" id="keep" data-f="keep"'+(S.ui.keep?' checked':'')+'><span><b>記録後も選手を選んだままにする</b><br><span class="muted">同じ選手が続けて触るトスやレシーブを入力するときに便利です。</span></span></label></section>'+
+    (function(){var cf=S.ui.confirm==='rp';return '<section class="card"><h2>このタブを初期化</h2><p class="muted" style="margin:6px 0 8px">'+(cf?'選手の登録を「選手1〜12」に戻します。記録のある選手は集計用に残り、メンバー一覧からは外れます。試合の記録は消えません。':'選手の名前・背番号を最初の状態(選手1〜12)に戻します。試合の記録は消えません。')+'</p><button class="btn-bad" data-do="resetroster" style="width:100%">'+(cf?'本当に初期化する':'選手を初期状態に戻す')+'</button>'+(cf?'<button data-do="resetcancel" style="width:100%;margin-top:8px">やめる</button>':'')+'</section>';})()+
     '<section class="card"><h2>きせかえ</h2><div class="skins" style="margin-top:8px">'+[['sakura','さくら','#D63B82'],['violet','むらさき','#7B5BE0'],['mint','ミント','#0C8C75'],['sky','そら','#2A74D0']].map(function(k){return '<button data-do="skin" data-k="'+k[0]+'" aria-pressed="'+(S.ui.skin===k[0])+'"><span class="sw-dot" style="background:'+k[2]+'"></span>'+k[1]+'</button>';}).join('')+'</div></section>'+
     '<section class="card"><h2>バックアップ</h2><p class="muted" style="margin:6px 0 8px">記録はこの端末のブラウザに保存されています。ブラウザのデータを消すと記録も消えるので、ときどき書き出してください。</p><div class="row" style="flex-wrap:wrap"><button class="sp" data-do="bkcopy">全データをコピー</button><button class="sp" data-do="bksave">ファイルに保存</button></div><textarea id="bktext" rows="3" placeholder="復元するときは、コピーした内容をここに貼り付けます"></textarea><button id="bkmerge" data-do="bkmerge" class="btn-main" style="width:100%;margin-top:8px">追加で取り込む(いまの記録は残す)</button><details style="margin-top:8px"><summary>上級: いまの記録をすべて消して置き換える</summary><p class="muted">貼り付けた内容だけが残り、いまの記録は消えます。通常は上の「追加で取り込む」を使ってください。</p><button id="bkrestore" data-do="bkrestore" class="btn-bad" style="width:100%">いまの記録を消して、貼り付けた内容に置き換える</button></details></section>'+
     '<section class="card"><h2>削除・取り込みの前の状態</h2><p class="muted" style="margin:6px 0 8px">試合やセットの削除、取り込みの直前の状態を、最大5つまで自動で保管しています。押すと、その時点に戻ります。</p>'+
@@ -959,6 +962,23 @@ document.addEventListener('click',function(ev){
       S.matches=S.matches.filter(function(x){return x.id!==id2;});
       if(S.curId===id2)S.curId=S.matches[S.matches.length-1].id;
       S.ui.confirm=null;mark(id2);if(col){dirty.roster=1;}render();toast('試合を削除しました');break;}
+    case 'resetcancel':S.ui.confirm=null;render();break;
+    case 'resetmatches':{
+      if(S.ui.confirm!=='rm'){S.ui.confirm='rm';render();break;}
+      saveUndo('試合タブを初期化する前');
+      var oldIds=S.matches.map(function(x){return x.id;});
+      var nm0=newMatch();S.matches=[nm0];S.curId=nm0.id;S.ui.pid=null;S.ui.scope='cur';S.ui.confirm=null;
+      mark(nm0.id);if(col)oldIds.forEach(function(i){dirty[i]=1;});
+      render();window.scrollTo(0,0);toast('試合タブを初期化しました');break;}
+    case 'resetroster':{
+      if(S.ui.confirm!=='rp'){S.ui.confirm='rp';render();break;}
+      saveUndo('選手タブを初期化する前');
+      var used={};S.matches.forEach(function(x){x.ev.forEach(function(e){used[e[1]]=1;});});
+      S.roster=S.roster.filter(function(p){return used[p.id];});
+      S.roster.forEach(function(p){p.arch=true;});
+      for(var ri=1;ri<=12;ri++)S.roster.push({id:S.nextPid++,num:String(ri),name:'選手'+ri,arch:false});
+      S.court=null;S.ui.pid=null;S.ui.confirm=null;S.sample=false;
+      mark('roster');render();window.scrollTo(0,0);toast('選手タブを初期化しました');break;}
     case 'addp':{
       var nums=activePlayers().map(function(p){return parseInt(p.num,10);}).filter(function(x){return !isNaN(x);});
       var nx=nums.length?Math.max.apply(null,nums)+1:1;
